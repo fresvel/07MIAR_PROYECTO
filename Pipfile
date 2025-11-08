@@ -5,6 +5,8 @@ name = "pypi"
 
 [packages]
 kaggle = "*"
+matplotlib = "*"
+opencv-python = "*"
 
 [dev-packages]
 
