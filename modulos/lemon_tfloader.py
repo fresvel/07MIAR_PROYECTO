@@ -9,19 +9,6 @@ class LemonTFLoader(LemonDataset):
 
         self._collect_dataset()
 
-    def _collect_dataset(self):
-        self.images = []
-        self.labels = []
-
-        for label in self.dir_path:
-            class_dir = self.dir_path[label]
-            for img_name in os.listdir(class_dir):
-                self.images.append(os.path.join(class_dir, img_name))
-                self.labels.append(label)
-
-        self.images = np.array(self.images)
-        self.labels = np.array(self.labels)
-
     def create_splits(self, test_size=0.15, val_size=0.15, seed=42):
         X_train, X_temp, y_train, y_temp = train_test_split(
             self.images, self.labels, 

@@ -3,14 +3,15 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-
+from sklearn.model_selection import train_test_split
 
 class LemonDataset():
     def __init__(self):
         self.dir_path= {'bad': 'lemon_dataset/bad_quality', 'empty': 'lemon_dataset/empty_background', 'good': 'lemon_dataset/good_quality'}
         self.img_path={label: self.dir_path[label]+'/'+ self.dir_path[label].split('/')[-1]+'_' for label in self.dir_path}
         self.size={}
-
+        self._collect_dataset()
+        
 
 
     def class_counter(self):
@@ -81,6 +82,79 @@ class LemonDataset():
         ])
 
         display(df_shapes.sort_values("Cantidad", ascending=False))
+
+    def _collect_dataset(self):
+        images = []
+        labels = []
+
+        for label in self.dir_path:
+            class_dir = self.dir_path[label]
+            for img_name in os.listdir(class_dir):
+                images.append(os.path.join(class_dir, img_name))
+                labels.append(label)
+
+        dataset = {'image':images, 'label':labels}
+        self.dataframe=pd.DataFrame(dataset)
+        self.images=self.dataframe['image'].values
+        self.labels=self.dataframe['label'].values
+
+    def _create_splits(self, test_size=0.15, val_size=0.15, seed=42):
+        """
+        Divide el dataset en tres subconjuntos: train, validation y test,
+        manteniendo la proporción original de clases (estratificación).
+
+        Parámetros
+        ----------
+        test_size : float, opcional (default=0.15)
+            Proporción del conjunto total que se asignará al conjunto de prueba (test).
+        
+        val_size : float, opcional (default=0.15)
+            Proporción del conjunto total que se asignará al conjunto de validación (validation).
+        
+        seed : int, opcional (default=42)
+            Valor para la semilla aleatoria que garantiza la reproducibilidad de la división.
+
+        Descripción
+        -----------
+        - Primero se separa el conjunto de entrenamiento (train), dejando un conjunto temporal
+        que contiene los datos destinados a validación y prueba.
+        - Luego, el conjunto temporal se divide nuevamente para obtener val y test,
+        usando una proporción relativa entre ambos.
+        - Se usa estratificación en ambas divisiones para mantener el balance entre clases.
+        
+        Resultado
+        ---------
+        Los subconjuntos se guardan en el atributo `self.splits` como un diccionario con la forma:
+
+            self.splits = {
+                "train": (X_train, y_train),
+                "val":   (X_val,  y_val),
+                "test":  (X_test, y_test)
+            }
+        """
+        X_train, X_temp, y_train, y_temp = train_test_split(
+            self.images, self.labels, 
+            train_size=(1-test_size-val_size),
+            stratify=self.labels, random_state=seed
+        )
+
+        relative_val = val_size / (test_size + val_size)
+        X_val, X_test, y_val, y_test = train_test_split(
+            X_temp, y_temp,
+            train_size=relative_val,
+            stratify=y_temp, random_state=seed
+        )
+
+        self._train_df = pd.DataFrame({"filename": X_train, "class": y_train})
+        self._val_df   = pd.DataFrame({"filename": X_val,   "class": y_val})
+        self._test_df  = pd.DataFrame({"filename": X_test,  "class": y_test})
+
+        self.splits = {
+            "train": (X_train, y_train),
+            "val":   (X_val, y_val),
+            "test":  (X_test, y_test)
+        }
+
 
     def __str__(self):
         self.show_samples()
