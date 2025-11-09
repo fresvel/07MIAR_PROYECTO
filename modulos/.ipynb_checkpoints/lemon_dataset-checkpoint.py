@@ -1,4 +1,4 @@
-
+import os
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
@@ -6,9 +6,14 @@ import numpy as np
 
 class LemonDataset():
     def __init__(self):
-        self.size = {'bad': 952, 'empty': 453, 'good': 1126}
         self.path= {'bad': 'lemon_dataset/bad_quality/bad_quality_', 'empty': 'lemon_dataset/empty_background/empty_background_', 'good': 'lemon_dataset/good_quality/good_quality_'}
+        self.size = {}
 
+    def class_counter(self):
+        os.
+        
+        
+    
     def show_samples(self):
         """
         Muestra un imágen aleatoria de cada clase del conjunto de datos.
