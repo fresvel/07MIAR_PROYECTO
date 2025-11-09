@@ -5,10 +5,11 @@ import pandas as pd
 from modulos.lemon_dataset import LemonDataset
 
 class LemonGenLoader(LemonDataset):
-    def __init__(self, img_size=(224,224), batch_size=32):
-        super().__init__()
+    def __init__(self, img_size=(224,224), batch_size=32, mode='scratch'):
+        super().__init__(mode)
         self.img_size = img_size
         self.batch_size = batch_size
+        
 
         # Creamos una lista global (img_path, label_string)
         self._create_splits()
@@ -16,12 +17,14 @@ class LemonGenLoader(LemonDataset):
 
     def get_generators(self):       
         train_datagen = ImageDataGenerator(
-            rescale=1/255,
-            rotation_range=20,
-            zoom_range=0.15,
-            brightness_range=(0.8, 1.2),
-            horizontal_flip=True
-        )
+                rescale=1/255,
+                rotation_range = self.rotation_range,
+                zoom_range = self.zoom_range,
+                brightness_range = self.brightness_range,
+                horizontal_flip = True
+            )
+    
+
         test_val_datagen = ImageDataGenerator(rescale=1/255)
 
         train_gen = train_datagen.flow_from_dataframe(

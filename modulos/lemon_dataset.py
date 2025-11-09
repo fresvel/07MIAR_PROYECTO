@@ -6,10 +6,24 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 class LemonDataset():
-    def __init__(self):
+    def __init__(self, mode='scratch'):
         self.dir_path= {'bad': 'lemon_dataset/bad_quality', 'empty': 'lemon_dataset/empty_background', 'good': 'lemon_dataset/good_quality'}
         self.img_path={label: self.dir_path[label]+'/'+ self.dir_path[label].split('/')[-1]+'_' for label in self.dir_path}
         self.size={}
+        if mode=='scratch':
+            self.rotation_range = 20
+            self.zoom_range = 0.15
+            self.brightness_range = (0.7, 1.3)
+            self.max_delta = 0.15
+            self.contrast_range = (0.8, 1.2)
+            self.zoom_ratio = (0.85, 0.95)
+        else :
+            self.rotation_range = 10
+            self.zoom_range = 0.07
+            self.brightness_range = (0.9, 1.1)
+            self.max_delta = 0.07
+            self.contrast_range = (0.9, 1.1)
+            self.zoom_ratio = (0.90, 0.98)
         self._collect_dataset()
         
 
