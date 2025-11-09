@@ -66,6 +66,7 @@ class LemonDataset():
                 img = cv2.imread(img_path)
 
                 if img is None:
+                    print(f"Error en la imagen: {img_path}")
                     continue  # evitar errores si hay archivos corruptos
 
                 h, w, c = img.shape
@@ -80,10 +81,6 @@ class LemonDataset():
         ])
 
         display(df_shapes.sort_values("Cantidad", ascending=False))
-        
-
-
-
 
     def __str__(self):
         self.show_samples()

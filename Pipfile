@@ -8,6 +8,8 @@ kaggle = "*"
 matplotlib = "*"
 opencv-python = "*"
 pandas = "*"
+scikit-learn = "*"
+tensorflow = {extras = ["and-cuda"], version = "*"}
 
 [dev-packages]
 
