@@ -1,7 +1,7 @@
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import tensorflow as tf
 
-class LemonTFDataLoader(LemonDataset):
+class LemonTFLoader(LemonDataset):
     def __init__(self, img_size=(224,224), batch_size=32):
         super().__init__()
         self.img_size = img_size

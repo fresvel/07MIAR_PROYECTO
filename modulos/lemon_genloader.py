@@ -13,6 +13,7 @@ class LemonGenLoader(LemonDataset):
 
         # Creamos una lista global (img_path, label_string)
         self._collect_dataset()
+        self._create_splits()
 
     def _collect_dataset(self):
         images = []
@@ -76,11 +77,63 @@ class LemonGenLoader(LemonDataset):
             stratify=y_temp, random_state=seed
         )
 
+        self.__train_df = pd.DataFrame({"filename": X_train, "class": y_train})
+        self.__val_df   = pd.DataFrame({"filename": X_val,   "class": y_val})
+        self.__test_df  = pd.DataFrame({"filename": X_test,  "class": y_test})
+
         self.splits = {
             "train": (X_train, y_train),
             "val":   (X_val, y_val),
             "test":  (X_test, y_test)
         }
+        
+
+
+    def get_generators(self):       
+        train_datagen = ImageDataGenerator(
+            rescale=1/255,
+            rotation_range=20,
+            zoom_range=0.15,
+            brightness_range=(0.8, 1.2),
+            horizontal_flip=True
+        )
+        test_val_datagen = ImageDataGenerator(rescale=1/255)
+
+        train_gen = train_datagen.flow_from_dataframe(
+            dataframe=self.__train_df,
+            x_col="filename",
+            y_col="class",
+            target_size=self.img_size,
+            batch_size=self.batch_size,
+            class_mode="categorical",
+            shuffle=True
+        )
+        
+        test_gen = test_val_datagen.flow_from_dataframe(
+            dataframe=self.__test_df,
+            x_col="filename",
+            y_col="class",
+            target_size=self.img_size,
+            batch_size=self.batch_size,
+            class_mode="categorical",
+            shuffle=False
+        )
+
+        val_gen = test_val_datagen.flow_from_dataframe(
+            dataframe=self.__val_df,
+            x_col="filename",
+            y_col="class",
+            target_size=self.img_size,
+            batch_size=self.batch_size,
+            class_mode="categorical",
+            shuffle=False
+        )
+
+        return train_gen, val_gen, test_gen
+
+
+
+
 
 
     def __str__(self):
