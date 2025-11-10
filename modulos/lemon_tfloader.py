@@ -7,14 +7,18 @@ class LemonTFLoader(LemonDataset):
         self.img_size = img_size
         self.batch_size = batch_size
         self._create_splits()
+        self.class_to_index = {"bad": 0, "empty": 1, "good": 2}
+
 
 
     def _process_path(self, file_path, label):
-        label = tf.cast(label, tf.string)
+        #label = tf.cast(label, tf.string)
         image = tf.io.read_file(file_path)
         image = tf.image.decode_jpeg(image, channels=3)
         image = tf.image.resize(image, self.img_size)
         image = tf.cast(image, tf.float32) / 255.0
+        label = tf.py_function(lambda x: self.class_to_index[x.decode()], [label], Tout=tf.int32)
+        label = tf.one_hot(label, depth=3)
         return image, label
 
     def _augment(self, image, label):
