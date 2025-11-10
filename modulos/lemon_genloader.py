@@ -6,7 +6,7 @@ from modulos.lemon_dataset import LemonDataset
 
 class LemonGenLoader(LemonDataset):
     def __init__(self, img_size=(224,224), batch_size=32, mode='scratch'):
-        super().__init__(mode)
+        super().__init__(mode, "gen")
         self.img_size = img_size
         self.batch_size = batch_size
         

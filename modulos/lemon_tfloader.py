@@ -3,7 +3,7 @@ from modulos.lemon_dataset import LemonDataset
 
 class LemonTFLoader(LemonDataset):
     def __init__(self, img_size=(224,224), batch_size=32, mode='scratch'):
-        super().__init__(mode)
+        super().__init__(mode, "tf")
         self.img_size = img_size
         self.batch_size = batch_size
         self._create_splits()
@@ -17,7 +17,7 @@ class LemonTFLoader(LemonDataset):
         image = tf.image.decode_jpeg(image, channels=3)
         image = tf.image.resize(image, self.img_size)
         image = tf.cast(image, tf.float32) / 255.0
-        label = tf.py_function(lambda x: self.class_to_index[x.decode()], [label], Tout=tf.int32)
+        
         label = tf.one_hot(label, depth=3)
         return image, label
 

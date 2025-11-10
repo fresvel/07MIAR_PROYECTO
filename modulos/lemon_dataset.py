@@ -6,10 +6,11 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 class LemonDataset():
-    def __init__(self, mode='scratch'):
+    def __init__(self, mode='scratch', loader='tf'):
         self.dir_path= {'bad': 'lemon_dataset/bad_quality', 'empty': 'lemon_dataset/empty_background', 'good': 'lemon_dataset/good_quality'}
         self.img_path={label: self.dir_path[label]+'/'+ self.dir_path[label].split('/')[-1]+'_' for label in self.dir_path}
         self.size={}
+        self.loader=loader
         if mode=='scratch':
             self.rotation_range = 20
             self.zoom_range = 0.15
@@ -109,8 +110,18 @@ class LemonDataset():
 
         dataset = {'image':images, 'label':labels}
         self.dataframe=pd.DataFrame(dataset)
+        self.dataframe['label'] = self.dataframe['label'].astype('category')
         self.images=self.dataframe['image'].values
         self.labels=self.dataframe['label'].values
+        
+        if self.loader=='tf':
+           self.dataframe['label_id'] = self.dataframe['label'].cat.codes #
+           self.labels = self.dataframe['label_id'].astype('int32').values
+        elif self.loader=='gen':
+            self.labels=self.dataframe['label'].values
+        else:
+            raise ValueError(f"loader '{self.cfg.loader}' no reconocido. Use 'gen' o 'tf'.")
+
 
     def _create_splits(self, test_size=0.15, val_size=0.15, seed=42):
         """
