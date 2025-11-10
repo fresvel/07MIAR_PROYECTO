@@ -108,10 +108,6 @@ class LemonTrainer:
     # TRAIN
     # -------------------------
     def train(self):
-        
-        print("********Training model*******")
-        print("Loader:", self.cfg.loader)
-        
         self.history = self.model.fit(
             self.train_ds,
             validation_data=self.val_ds,
@@ -220,7 +216,6 @@ class LemonTrainer:
 
         De esta manera se asegura consistencia, reproducibilidad y organización en el proceso de experimentación.
         """
-        
         (self.prepare_data(val_size=val_size, test_size=test_size, seed=seed)
             .build_model()
             .compile_model()

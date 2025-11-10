@@ -61,7 +61,7 @@ class LemonGenLoader(LemonDataset):
 
 
     def __str__(self):
-        display(self.dataframe.sample(5))
+        #display(self.dataframe.sample(5))
         print(f"images: {type(self.images)}")
         print(f"labels: {type(self.labels)}")
         return ''

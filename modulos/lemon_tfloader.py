@@ -3,7 +3,7 @@ from modulos.lemon_dataset import LemonDataset
 
 class LemonTFLoader(LemonDataset):
     def __init__(self, img_size=(224,224), batch_size=32, mode='scratch'):
-        super().__init__(mode, "tf")
+        LemonDataset.__init__(self, mode=mode, loader="tf")
         self.img_size = img_size
         self.batch_size = batch_size
         self._create_splits()
@@ -21,6 +21,7 @@ class LemonTFLoader(LemonDataset):
         label = tf.one_hot(label, depth=3)
         return image, label
 
+    """
     def _augment(self, image, label):
         image = tf.image.random_flip_left_right(image)
         image = tf.image.random_brightness(image, self.max_delta)
@@ -30,6 +31,23 @@ class LemonTFLoader(LemonDataset):
         image = tf.image.central_crop(image, zoom_ratio)
         image = tf.image.resize(image, self.img_size)
         return image, label
+    """
+    def _augment(self, image, label):
+        image = tf.image.random_flip_left_right(image)
+        image = tf.image.random_brightness(image, self.max_delta)
+        image = tf.image.random_contrast(image, self.contrast_range[0], self.contrast_range[1])
+
+        # NUEVO: rompe dependencia del fondo
+        image = tf.image.random_saturation(image, 0.6, 1.4)
+        image = tf.image.random_hue(image, 0.08)
+
+        # Recorte que obliga a ver el limón
+        crop_scale = tf.random.uniform([], 0.75, 0.95)
+        image = tf.image.central_crop(image, crop_scale)
+
+        image = tf.image.resize(image, self.img_size)
+        return image, label
+
 
     def get_datasets(self):
         train_ds = tf.data.Dataset.from_tensor_slices(self.splits["train"])

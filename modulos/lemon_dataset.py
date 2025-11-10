@@ -13,7 +13,7 @@ class LemonDataset():
         self.loader=loader
         if mode=='scratch':
             self.rotation_range = 20
-            self.zoom_range = 0.15
+            self.zoom_range = (0.75, 1.0)
             self.brightness_range = (0.7, 1.3)
             self.max_delta = 0.15
             self.contrast_range = (0.8, 1.2)
