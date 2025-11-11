@@ -117,7 +117,8 @@ class LemonTrainer:
             validation_data=self.val_ds,
             epochs=self.cfg.epochs,
             callbacks=self._callbacks(),
-            verbose=1
+            verbose=1,
+            steps_per_epoch=self.loader.steps_per_epoch
         )
         return self
 
