@@ -1,6 +1,6 @@
-import os
-os.environ["TF_XLA_FLAGS"] = "--tf_xla_auto_jit=0"
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+#import os
+#os.environ["TF_XLA_FLAGS"] = "--tf_xla_auto_jit=0"
+#os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 from modulos.lemon_trainer import LemonTrainer, TrainerConfig
 
 cfg = TrainerConfig(
