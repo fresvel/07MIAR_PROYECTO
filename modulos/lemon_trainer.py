@@ -44,9 +44,9 @@ class LemonTrainer:
         self.builder = None
         self.model = None
         self.history = None
-        self.cfg.save_dir = os.path.join(self.cfg.save_dir, self.cfg.loader, attempt)
-        os.makedirs(self.cfg.save_dir, exist_ok=True)
-        self.best_model_path = os.path.join(self.cfg.save_dir, self.cfg.model_out)
+        self.save_dir = os.path.join(self.cfg.save_dir, self.cfg.loader, attempt)
+        os.makedirs(self.save_dir, exist_ok=True)
+        self.best_model_path = os.path.join(self.save_dir, self.cfg.model_out)
 
     # -------------------------
     # PREPARACIÓN DE DATOS
@@ -152,7 +152,7 @@ class LemonTrainer:
         plt.plot(hist["accuracy"], label="Train Acc")
         plt.plot(hist["val_accuracy"], label="Val Acc")
         plt.title("Accuracy"); plt.legend()
-        plt.savefig(os.path.join(self.cfg.save_dir, "history.png"))
+        plt.savefig(os.path.join(self.save_dir, "history.png"))
         plt.show()
         return self
 
