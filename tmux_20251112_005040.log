@@ -879,4 +879,55 @@ Epoch 25/40
 [?2004hubuntu@ip-172-31-65-208:~/RNDP/07MIAR_PROYECTO/results$ mv tf/ history/16/tf/[K[K[K17
 [?2004l[?2004hubuntu@ip-172-31-65-208:~/RNDP/07MIAR_PROYECTO/results$ exit[K[K[K[Kcd ..
 [?2004l[?2004hubuntu@ip-172-31-65-208:~/RNDP/07MIAR_PROYECTO$ git add .
-[?2004l
+[?2004l[?2004hubuntu@ip-172-31-65-208:~/RNDP/07MIAR_PROYECTO$ git commit -m ""M"o"[1P"[1P"P"o"nderaition mod"el"e"[1P"l"e"s"[1Pes"[C[C[1Ps"[1P[C[1P[1@a[C[C[C[C[C[C[C[C[C[C[C[C
+[?2004l[main 71ba7c6] Ponderation models
+ Committer: Ubuntu <ubuntu@ip-172-31-65-208.ec2.internal>
+Your name and email address were configured automatically based
+on your username and hostname. Please check that they are accurate.
+You can suppress this message by setting them explicitly. Run the
+following command and follow the instructions in your editor to edit
+your configuration file:
+
+    git config --global --edit
+
+After doing this, you may fix the identity used for this commit with:
+
+    git commit --amend --reset-author
+
+ 25 files changed, 883 insertions(+), 1 deletion(-)
+ rewrite modulos/__pycache__/lemon_trainer.cpython-310.pyc (79%)
+ create mode 100644 results/history/07_tf/tf/history.png
+ create mode 100644 results/history/07_tf/tf/model_best.keras
+ create mode 100644 results/history/08/tf/history.png
+ create mode 100644 results/history/08/tf/model_best.keras
+ create mode 100644 results/history/09/tf/history.png
+ create mode 100644 results/history/09/tf/model_best.keras
+ create mode 100644 results/history/10/tf/history.png
+ create mode 100644 results/history/10/tf/model_best.keras
+ create mode 100644 results/history/11/tf/history.png
+ create mode 100644 results/history/11/tf/model_best.keras
+ create mode 100644 results/history/12/tf/history.png
+ create mode 100644 results/history/12/tf/model_best.keras
+ create mode 100644 results/history/13/tf/history.png
+ create mode 100644 results/history/13/tf/model_best.keras
+ create mode 100644 results/history/14/tf/history.png
+ create mode 100644 results/history/14/tf/model_best.keras
+ create mode 100644 results/history/15/tf/history.png
+ create mode 100644 results/history/15/tf/model_best.keras
+ create mode 100644 results/history/16/17/history.png
+ create mode 100644 results/history/16/17/model_best.keras
+ create mode 100644 results/history/16/tf/history.png
+ create mode 100644 results/history/16/tf/model_best.keras
+ create mode 100644 tmux_20251112_005040.log
+[?2004hubuntu@ip-172-31-65-208:~/RNDP/07MIAR_PROYECTO$ git pushh[K
+[?2004lEnumerating objects: 57, done.
+Counting objects:   1% (1/57)Counting objects:   3% (2/57)Counting objects:   5% (3/57)Counting objects:   7% (4/57)Counting objects:   8% (5/57)Counting objects:  10% (6/57)Counting objects:  12% (7/57)Counting objects:  14% (8/57)Counting objects:  15% (9/57)Counting objects:  17% (10/57)Counting objects:  19% (11/57)Counting objects:  21% (12/57)Counting objects:  22% (13/57)Counting objects:  24% (14/57)Counting objects:  26% (15/57)Counting objects:  28% (16/57)Counting objects:  29% (17/57)Counting objects:  31% (18/57)Counting objects:  33% (19/57)Counting objects:  35% (20/57)Counting objects:  36% (21/57)Counting objects:  38% (22/57)Counting objects:  40% (23/57)Counting objects:  42% (24/57)Counting objects:  43% (25/57)Counting objects:  45% (26/57)Counting objects:  47% (27/57)Counting objects:  49% (28/57)Counting objects:  50% (29/57)Counting objects:  52% (30/57)Counting objects:  54% (31/57)Counting objects:  56% (32/57)Counting objects:  57% (33/57)Counting objects:  59% (34/57)Counting objects:  61% (35/57)Counting objects:  63% (36/57)Counting objects:  64% (37/57)Counting objects:  66% (38/57)Counting objects:  68% (39/57)Counting objects:  70% (40/57)Counting objects:  71% (41/57)Counting objects:  73% (42/57)Counting objects:  75% (43/57)Counting objects:  77% (44/57)Counting objects:  78% (45/57)Counting objects:  80% (46/57)Counting objects:  82% (47/57)Counting objects:  84% (48/57)Counting objects:  85% (49/57)Counting objects:  87% (50/57)Counting objects:  89% (51/57)Counting objects:  91% (52/57)Counting objects:  92% (53/57)Counting objects:  94% (54/57)Counting objects:  96% (55/57)Counting objects:  98% (56/57)Counting objects: 100% (57/57)Counting objects: 100% (57/57), done.
+Delta compression using up to 8 threads
+Compressing objects:   2% (1/41)Compressing objects:   4% (2/41)Compressing objects:   7% (3/41)Compressing objects:   9% (4/41)Compressing objects:  12% (5/41)Compressing objects:  14% (6/41)Compressing objects:  17% (7/41)Compressing objects:  19% (8/41)Compressing objects:  21% (9/41)Compressing objects:  24% (10/41)Compressing objects:  26% (11/41)Compressing objects:  29% (12/41)Compressing objects:  31% (13/41)Compressing objects:  34% (14/41)Compressing objects:  36% (15/41)Compressing objects:  39% (16/41)Compressing objects:  41% (17/41)Compressing objects:  43% (18/41)Compressing objects:  46% (19/41)Compressing objects:  48% (20/41)Compressing objects:  51% (21/41)Compressing objects:  53% (22/41)Compressing objects:  56% (23/41)Compressing objects:  58% (24/41)Compressing objects:  60% (25/41)Compressing objects:  63% (26/41)Compressing objects:  65% (27/41)Compressing objects:  68% (28/41)Compressing objects:  70% (29/41)Compressing objects:  73% (30/41)Compressing objects:  75% (31/41)Compressing objects:  78% (32/41)Compressing objects:  80% (33/41)Compressing objects:  82% (34/41)Compressing objects:  85% (35/41)Compressing objects:  87% (36/41)Compressing objects:  90% (37/41)Compressing objects:  92% (38/41)Compressing objects:  95% (39/41)Compressing objects:  97% (40/41)Compressing objects: 100% (41/41)Compressing objects: 100% (41/41), done.
+Writing objects:   1% (1/51)Writing objects:   3% (2/51)Writing objects:   5% (3/51)Writing objects:   7% (4/51)Writing objects:   9% (5/51)Writing objects:  11% (6/51)Writing objects:  13% (7/51)Writing objects:  15% (8/51)Writing objects:  17% (9/51)Writing objects:  19% (10/51)Writing objects:  21% (11/51)Writing objects:  23% (12/51)Writing objects:  25% (13/51)Writing objects:  27% (14/51)Writing objects:  29% (15/51)Writing objects:  31% (16/51)Writing objects:  33% (17/51)Writing objects:  35% (18/51)Writing objects:  37% (19/51)Writing objects:  39% (20/51)Writing objects:  41% (21/51)Writing objects:  43% (22/51)Writing objects:  45% (23/51)Writing objects:  47% (24/51)Writing objects:  49% (25/51)Writing objects:  50% (26/51)Writing objects:  52% (27/51), 7.63 MiB | 13.53 MiB/sWriting objects:  54% (28/51), 7.63 MiB | 13.53 MiB/sWriting objects:  56% (29/51), 7.63 MiB | 13.53 MiB/sWriting objects:  58% (30/51), 7.63 MiB | 13.53 MiB/sWriting objects:  60% (31/51), 7.63 MiB | 13.53 MiB/sWriting objects:  62% (32/51), 7.63 MiB | 13.53 MiB/sWriting objects:  64% (33/51), 7.63 MiB | 13.53 MiB/sWriting objects:  66% (34/51), 7.63 MiB | 13.53 MiB/sWriting objects:  68% (35/51), 7.63 MiB | 13.53 MiB/sWriting objects:  70% (36/51), 7.63 MiB | 13.53 MiB/sWriting objects:  72% (37/51), 7.63 MiB | 13.53 MiB/sWriting objects:  74% (38/51), 7.63 MiB | 13.53 MiB/sWriting objects:  76% (39/51), 7.63 MiB | 13.53 MiB/sWriting objects:  78% (40/51), 7.63 MiB | 13.53 MiB/sWriting objects:  80% (41/51), 7.63 MiB | 13.53 MiB/sWriting objects:  82% (42/51), 7.63 MiB | 13.53 MiB/sWriting objects:  84% (43/51), 7.63 MiB | 13.53 MiB/sWriting objects:  86% (44/51), 7.63 MiB | 13.53 MiB/sWriting objects:  88% (45/51), 7.63 MiB | 13.53 MiB/sWriting objects:  90% (46/51), 7.63 MiB | 13.53 MiB/sWriting objects:  92% (47/51), 17.14 MiB | 15.15 MiB/sWriting objects:  94% (48/51), 17.14 MiB | 15.15 MiB/sWriting objects:  96% (49/51), 17.14 MiB | 15.15 MiB/sWriting objects:  98% (50/51), 17.14 MiB | 15.15 MiB/sWriting objects: 100% (51/51), 17.14 MiB | 15.15 MiB/sWriting objects: 100% (51/51), 21.03 MiB | 16.39 MiB/s, done.
+Total 51 (delta 4), reused 0 (delta 0), pack-reused 0
+remote: Resolving deltas:   0% (0/4)[Kremote: Resolving deltas:  25% (1/4)[Kremote: Resolving deltas:  50% (2/4)[Kremote: Resolving deltas:  75% (3/4)[Kremote: Resolving deltas: 100% (4/4)[Kremote: Resolving deltas: 100% (4/4), completed with 4 local objects.[K
+To github.com:fresvel/07MIAR_PROYECTO.git
+   51f1485..71ba7c6  main -> main
+[?2004hubuntu@ip-172-31-65-208:~/RNDP/07MIAR_PROYECTO$ exit
+[?2004llogout
