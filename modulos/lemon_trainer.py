@@ -125,7 +125,8 @@ class LemonTrainer:
         # Calcular ponderación de clases
         # ------------------------------------------------------
         if self.cfg.loader == "tf":
-            labels = [label for _, label in self.loader.splits["train"]]
+            _, labels = self.loader.splits["train"]
+            labels = labels.numpy().tolist() if isinstance(labels, tf.Tensor) else list(labels)
         else:
             labels = self.loader._train_df["class"].map({"bad": 0, "empty": 1, "good": 2}).values
 
@@ -140,6 +141,8 @@ class LemonTrainer:
         # ------------------------------------------------------
         # Entrenamiento principal
         # ------------------------------------------------------
+        use_class_weight = self.cfg.loader == "tf"
+
         self.history = self.model.fit(
             self.train_ds,
             validation_data=self.val_ds,
@@ -147,9 +150,10 @@ class LemonTrainer:
             callbacks=self._callbacks(),
             verbose=1,
             steps_per_epoch=getattr(self.loader, "steps_per_epoch", None),
-            class_weight=class_weight_dict  # 👈 ponderación aplicada
+            **({"class_weight": class_weight_dict} if use_class_weight else {})
         )
         return self
+
 
     # ----------------------------------------------------------
     # EVALUACIÓN FINAL
