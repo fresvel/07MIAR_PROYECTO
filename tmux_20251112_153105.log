@@ -1,0 +1,13 @@
+[?2004hubuntu@ip-172-31-65-208:~/RNDP/07MIAR_PROYECTO$ python3 tf_run.py 
+[?2004l2025-11-12 15:31:11.546201: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2025-11-12 15:31:11.606423: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F AVX512_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2025-11-12 15:31:13.333802: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+
+===== Iniciando entrenamiento intento 01 =====
+Traceback (most recent call last):
+  File "/home/ubuntu/RNDP/07MIAR_PROYECTO/tf_run.py", line 16, in <module>
+    trainer = LemonTrainer(cfg, attempt=attempt_id)
+TypeError: LemonTrainer.__init__() got an unexpected keyword argument 'attempt'
+[?2004hubuntu@ip-172-31-65-208:~/RNDP/07MIAR_PROYECTO$ exit
+[?2004llogout
