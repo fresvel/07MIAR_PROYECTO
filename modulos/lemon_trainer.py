@@ -135,6 +135,15 @@ class LemonTrainer:
             classes=np.unique(labels),
             y=labels
         )
+
+        alpha = 0.5         # suaviza a la raíz cuadrada
+        max_ratio = 2.5     # no permitas que ninguna clase pese >2.5x otra
+
+        w = np.power(class_weights, alpha)
+        w = np.minimum(w, np.max(w)/np.minimum.reduce([1,1]) )  # opcional
+        # o normaliza por el máximo para limitar el rango
+        w = w / np.max(w) * max_ratio
+
         class_weight_dict = dict(enumerate(class_weights))
         print("Class weights:", class_weight_dict)
 
