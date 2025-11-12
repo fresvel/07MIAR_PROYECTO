@@ -44,7 +44,7 @@ class LemonTrainer:
     Decide automáticamente si usar ImageDataGenerator o tf.data según config.loader.
     Mantiene constantes el modelo, el optimizador y la lógica experimental.
     """
-    def __init__(self, config: Optional[TrainerConfig] = None):
+    def __init__(self, config: Optional[TrainerConfig] = None, attempt=""):
         self.cfg = config or TrainerConfig()
         self.loader = None
         self.train_ds = None
@@ -55,9 +55,9 @@ class LemonTrainer:
         self.history = None
 
         # Crear carpeta de salida
-        self.cfg.save_dir = os.path.join(self.cfg.save_dir, self.cfg.loader)
-        os.makedirs(self.cfg.save_dir, exist_ok=True)
-        self.best_model_path = os.path.join(self.cfg.save_dir, self.cfg.model_out)
+        self.save_dir = os.path.join(self.cfg.save_dir, self.cfg.loader, attempt)
+        os.makedirs(self.save_dir, exist_ok=True)
+        self.best_model_path = os.path.join(self.save_dir, self.cfg.model_out)
 
     # ----------------------------------------------------------
     # PREPARACIÓN DE DATOS
@@ -189,7 +189,7 @@ class LemonTrainer:
         plt.legend()
 
         plt.tight_layout()
-        plt.savefig(os.path.join(self.cfg.save_dir, "history.png"))
+        plt.savefig(os.path.join(self.save_dir, "history.png"))
         plt.show()
         return self
 
