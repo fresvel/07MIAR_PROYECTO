@@ -43,7 +43,7 @@ class LemonTFLoader(LemonDataset):
             return self._augment(image, label)
         return tf.cond(tf.equal(tf.argmax(label), 1), augment, no_augment)
 
-    def get_datasets(self):
+    def get_old_datasets(self):
         """Crea y devuelve los datasets de entrenamiento, validación y prueba."""
         train_ds = tf.data.Dataset.from_tensor_slices(self.splits["train"])
         val_ds   = tf.data.Dataset.from_tensor_slices(self.splits["val"])
@@ -59,6 +59,63 @@ class LemonTFLoader(LemonDataset):
         val_ds   = val_ds.batch(self.batch_size).prefetch(tf.data.AUTOTUNE)
         test_ds  = test_ds.batch(self.batch_size).prefetch(tf.data.AUTOTUNE)
         self.steps_per_epoch = tf.data.experimental.cardinality(train_ds).numpy()
+        return train_ds, val_ds, test_ds
+
+
+    def get_datasets(self):
+        """Crea datasets balanceados por batch usando sample_from_datasets."""
+        # ---------------------------
+        # 1. Crear datasets base
+        # ---------------------------
+        train_raw = tf.data.Dataset.from_tensor_slices(self.splits["train"])
+        val_ds    = tf.data.Dataset.from_tensor_slices(self.splits["val"])
+        test_ds   = tf.data.Dataset.from_tensor_slices(self.splits["test"])
+
+        # procesamiento simple (sin augment todavía)
+        train_raw = train_raw.map(self._process_path, num_parallel_calls=tf.data.AUTOTUNE)
+        val_ds    = val_ds.map(self._process_path, num_parallel_calls=tf.data.AUTOTUNE)
+        test_ds   = test_ds.map(self._process_path, num_parallel_calls=tf.data.AUTOTUNE)
+
+        # ---------------------------
+        # 2. Subdividir por clase
+        # ---------------------------
+        ds_bad   = train_raw.filter(lambda x, y: tf.equal(tf.argmax(y), 0))
+        ds_empty = train_raw.filter(lambda x, y: tf.equal(tf.argmax(y), 1))
+        ds_good  = train_raw.filter(lambda x, y: tf.equal(tf.argmax(y), 2))
+
+        # ---------------------------
+        # 3. Mezclar con pesos balanceados
+        #    (puedes subir empty ligeramente)
+        # ---------------------------
+        balanced_train = tf.data.Dataset.sample_from_datasets(
+            [ds_bad, ds_empty, ds_good],
+            weights=[0.33, 0.34, 0.33]   # puedes probar [0.25, 0.50, 0.25]
+        )
+
+        # ---------------------------
+        # 4. Aplicar augment
+        # ---------------------------
+        balanced_train = balanced_train.map(
+            self._conditional_augment,
+            num_parallel_calls=tf.data.AUTOTUNE
+        )
+
+        # ---------------------------
+        # 5. Batch + Prefetch
+        # ---------------------------
+        train_ds = (
+            balanced_train
+            .batch(self.batch_size)
+            .prefetch(tf.data.AUTOTUNE)
+        )
+
+        val_ds  = val_ds.batch(self.batch_size).prefetch(tf.data.AUTOTUNE)
+        test_ds = test_ds.batch(self.batch_size).prefetch(tf.data.AUTOTUNE)
+
+        # calcular steps_per_epoch
+        self.steps_per_epoch = len(self.splits["train"]) // self.batch_size
+        #self.steps_per_epoch = tf.data.experimental.cardinality(train_ds).numpy()
+
         return train_ds, val_ds, test_ds
 
 
