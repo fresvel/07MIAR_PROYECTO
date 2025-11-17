@@ -578,4 +578,52 @@ Pipfile.lock           [01;34mlog[0m            [01;34mresults[0m           
 [01;34m02_tf[0m  [01;34m04_tf[0m  [01;34m0B_Sampling_Empty_Augmentation[0m
 [?2004hubuntu@ip-172-31-65-208:~/RNDP/07MIAR_PROYECTO/results$ cd ..
 [?2004l[?2004hubuntu@ip-172-31-65-208:~/RNDP/07MIAR_PROYECTO$ gt[Kit push[K[K[K[Kadd .
-[?2004l
+[?2004l[?2004hubuntu@ip-172-31-65-208:~/RNDP/07MIAR_PROYECTO$ git commit -m "SEA"
+[?2004l[main 0dba65f] SEA
+ Committer: Ubuntu <ubuntu@ip-172-31-65-208.ec2.internal>
+Your name and email address were configured automatically based
+on your username and hostname. Please check that they are accurate.
+You can suppress this message by setting them explicitly. Run the
+following command and follow the instructions in your editor to edit
+your configuration file:
+
+    git config --global --edit
+
+After doing this, you may fix the identity used for this commit with:
+
+    git commit --amend --reset-author
+
+ 22 files changed, 581 insertions(+)
+ create mode 100644 results/0B_Sampling_Empty_Augmentation/01/history.png
+ create mode 100644 results/0B_Sampling_Empty_Augmentation/01/model_best.keras
+ create mode 100644 results/0B_Sampling_Empty_Augmentation/02/history.png
+ create mode 100644 results/0B_Sampling_Empty_Augmentation/02/model_best.keras
+ create mode 100644 results/0B_Sampling_Empty_Augmentation/03/history.png
+ create mode 100644 results/0B_Sampling_Empty_Augmentation/03/model_best.keras
+ create mode 100644 results/0B_Sampling_Empty_Augmentation/04/history.png
+ create mode 100644 results/0B_Sampling_Empty_Augmentation/04/model_best.keras
+ create mode 100644 results/0B_Sampling_Empty_Augmentation/05/history.png
+ create mode 100644 results/0B_Sampling_Empty_Augmentation/05/model_best.keras
+ create mode 100644 results/0B_Sampling_Empty_Augmentation/06/history.png
+ create mode 100644 results/0B_Sampling_Empty_Augmentation/06/model_best.keras
+ create mode 100644 results/0B_Sampling_Empty_Augmentation/07/history.png
+ create mode 100644 results/0B_Sampling_Empty_Augmentation/07/model_best.keras
+ create mode 100644 results/0B_Sampling_Empty_Augmentation/08/history.png
+ create mode 100644 results/0B_Sampling_Empty_Augmentation/08/model_best.keras
+ create mode 100644 results/0B_Sampling_Empty_Augmentation/09/history.png
+ create mode 100644 results/0B_Sampling_Empty_Augmentation/09/model_best.keras
+ create mode 100644 results/0B_Sampling_Empty_Augmentation/10/history.png
+ create mode 100644 results/0B_Sampling_Empty_Augmentation/10/model_best.keras
+ create mode 100644 tmux_20251117_165954.log
+[?2004hubuntu@ip-172-31-65-208:~/RNDP/07MIAR_PROYECTO$ git push
+[?2004lEnumerating objects: 43, done.
+Counting objects:   2% (1/43)Counting objects:   4% (2/43)Counting objects:   6% (3/43)Counting objects:   9% (4/43)Counting objects:  11% (5/43)Counting objects:  13% (6/43)Counting objects:  16% (7/43)Counting objects:  18% (8/43)Counting objects:  20% (9/43)Counting objects:  23% (10/43)Counting objects:  25% (11/43)Counting objects:  27% (12/43)Counting objects:  30% (13/43)Counting objects:  32% (14/43)Counting objects:  34% (15/43)Counting objects:  37% (16/43)Counting objects:  39% (17/43)Counting objects:  41% (18/43)Counting objects:  44% (19/43)Counting objects:  46% (20/43)Counting objects:  48% (21/43)Counting objects:  51% (22/43)Counting objects:  53% (23/43)Counting objects:  55% (24/43)Counting objects:  58% (25/43)Counting objects:  60% (26/43)Counting objects:  62% (27/43)Counting objects:  65% (28/43)Counting objects:  67% (29/43)Counting objects:  69% (30/43)Counting objects:  72% (31/43)Counting objects:  74% (32/43)Counting objects:  76% (33/43)Counting objects:  79% (34/43)Counting objects:  81% (35/43)Counting objects:  83% (36/43)Counting objects:  86% (37/43)Counting objects:  88% (38/43)Counting objects:  90% (39/43)Counting objects:  93% (40/43)Counting objects:  95% (41/43)Counting objects:  97% (42/43)Counting objects: 100% (43/43)Counting objects: 100% (43/43), done.
+Delta compression using up to 8 threads
+Compressing objects:   2% (1/38)Compressing objects:   5% (2/38)Compressing objects:   7% (3/38)Compressing objects:  10% (4/38)Compressing objects:  13% (5/38)Compressing objects:  15% (6/38)Compressing objects:  18% (7/38)Compressing objects:  21% (8/38)Compressing objects:  23% (9/38)Compressing objects:  26% (10/38)Compressing objects:  28% (11/38)Compressing objects:  31% (12/38)Compressing objects:  34% (13/38)Compressing objects:  36% (14/38)Compressing objects:  39% (15/38)Compressing objects:  42% (16/38)Compressing objects:  44% (17/38)Compressing objects:  47% (18/38)Compressing objects:  50% (19/38)Compressing objects:  52% (20/38)Compressing objects:  55% (21/38)Compressing objects:  57% (22/38)Compressing objects:  60% (23/38)Compressing objects:  63% (24/38)Compressing objects:  65% (25/38)Compressing objects:  68% (26/38)Compressing objects:  71% (27/38)Compressing objects:  73% (28/38)Compressing objects:  76% (29/38)Compressing objects:  78% (30/38)Compressing objects:  81% (31/38)Compressing objects:  84% (32/38)Compressing objects:  86% (33/38)Compressing objects:  89% (34/38)Compressing objects:  92% (35/38)Compressing objects:  94% (36/38)Compressing objects:  97% (37/38)Compressing objects: 100% (38/38)Compressing objects: 100% (38/38), done.
+Writing objects:   2% (1/38)Writing objects:   5% (2/38)Writing objects:   7% (3/38)Writing objects:  10% (4/38)Writing objects:  13% (5/38)Writing objects:  15% (6/38)Writing objects:  18% (7/38)Writing objects:  21% (8/38)Writing objects:  23% (9/38)Writing objects:  26% (10/38)Writing objects:  28% (11/38)Writing objects:  31% (12/38)Writing objects:  34% (13/38)Writing objects:  36% (14/38)Writing objects:  39% (15/38)Writing objects:  42% (16/38)Writing objects:  44% (17/38)Writing objects:  47% (18/38)Writing objects:  50% (19/38)Writing objects:  52% (20/38)Writing objects:  55% (21/38)Writing objects:  57% (22/38), 7.63 MiB | 13.58 MiB/sWriting objects:  60% (23/38), 7.63 MiB | 13.58 MiB/sWriting objects:  63% (24/38), 7.63 MiB | 13.58 MiB/sWriting objects:  65% (25/38), 7.63 MiB | 13.58 MiB/sWriting objects:  68% (26/38), 7.63 MiB | 13.58 MiB/sWriting objects:  71% (27/38), 7.63 MiB | 13.58 MiB/sWriting objects:  73% (28/38), 7.63 MiB | 13.58 MiB/sWriting objects:  76% (29/38), 7.63 MiB | 13.58 MiB/sWriting objects:  78% (30/38), 7.63 MiB | 13.58 MiB/sWriting objects:  81% (31/38), 7.63 MiB | 13.58 MiB/sWriting objects:  84% (32/38), 7.63 MiB | 13.58 MiB/sWriting objects:  86% (33/38), 7.63 MiB | 13.58 MiB/sWriting objects:  89% (34/38), 7.63 MiB | 13.58 MiB/sWriting objects:  92% (35/38), 7.63 MiB | 13.58 MiB/sWriting objects:  94% (36/38), 7.63 MiB | 13.58 MiB/sWriting objects:  97% (37/38), 17.12 MiB | 15.06 MiB/sWriting objects: 100% (38/38), 17.12 MiB | 15.06 MiB/sWriting objects: 100% (38/38), 19.10 MiB | 16.30 MiB/s, done.
+Total 38 (delta 5), reused 0 (delta 0), pack-reused 0
+remote: Resolving deltas:   0% (0/5)[Kremote: Resolving deltas:  20% (1/5)[Kremote: Resolving deltas:  40% (2/5)[Kremote: Resolving deltas:  60% (3/5)[Kremote: Resolving deltas:  80% (4/5)[Kremote: Resolving deltas: 100% (5/5)[Kremote: Resolving deltas: 100% (5/5), completed with 5 local objects.[K
+To github.com:fresvel/07MIAR_PROYECTO.git
+   1ae9017..0dba65f  main -> main
+[?2004hubuntu@ip-172-31-65-208:~/RNDP/07MIAR_PROYECTO$ exit
+[?2004llogout
