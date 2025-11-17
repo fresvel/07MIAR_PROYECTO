@@ -5,7 +5,7 @@ from modulos.lemon_trainer import LemonTrainer, TrainerConfig
 cfg = TrainerConfig(
     loader="tf",
     mode="scratch",
-    epochs=40,
+    epochs=100,
     learning_rate=1e-3
 )
 

@@ -22,8 +22,8 @@ class TrainerConfig:
     learning_rate: float = 1e-3
     mode: str = "scratch"         # afecta augmentación
     model_out: str = "model_best.keras"
-    patience_es: int = 7
-    patience_rlrop: int = 3
+    patience_es: int = 20
+    patience_rlrop: int = 8
     min_lr: float = 1e-6
     save_dir: str = "./results"
     num_classes: int = 3
