@@ -36,9 +36,9 @@ class LemonTFLoader(LemonDataset):
         Aplica augmentación solo si la clase es 'empty' (índice 1).
         """
         def augment():
-            #return image, label
-            print("-----------------Augment agregado------------")
-            return self._augment(image, label)
+            return image, label
+            #print("-----------------Augment agregado------------")
+            #return self._augment(image, label)
 
         def no_augment():
             return image, label
@@ -46,7 +46,7 @@ class LemonTFLoader(LemonDataset):
             #return self._augment(image, label)
         return tf.cond(tf.equal(tf.argmax(label), self.class_to_index['empty']), augment, no_augment)
 
-    def get_old_datasets(self):
+    def get_datasets(self):
         """Crea y devuelve los datasets de entrenamiento, validación y prueba."""
         train_ds = tf.data.Dataset.from_tensor_slices(self.splits["train"])
         val_ds   = tf.data.Dataset.from_tensor_slices(self.splits["val"])
@@ -65,7 +65,7 @@ class LemonTFLoader(LemonDataset):
         return train_ds, val_ds, test_ds
 
 
-    def get_datasets(self):
+    def get_sampling_datasets(self):
         """Crea datasets balanceados por batch usando sample_from_datasets."""
         # ---------------------------
         # 1. Crear datasets base
