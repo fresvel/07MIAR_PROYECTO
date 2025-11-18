@@ -36,9 +36,9 @@ class LemonTFLoader(LemonDataset):
         Aplica augmentación solo si la clase es 'empty' (índice 1).
         """
         def augment():
-            #return image, label
-            print("-----------------Augment agregado------------")
-            return self._augment(image, label)
+            return image, label
+            #print("-----------------Augment agregado------------")
+            #return self._augment(image, label)
 
         def no_augment():
             return image, label
