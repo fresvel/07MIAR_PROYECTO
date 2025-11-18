@@ -1,7 +1,7 @@
 import numpy as np
 import os
 
-from modulos.lemon_transfer_trainer import LemonTransferTrainer
+from modulos.transfer_trainer import LemonTransferTrainer
 from modulos.lemon_tfloader import LemonTFLoader
 from modulos.lemon_trainer import TrainerConfig   # se reutiliza el mismo dataclass
 
