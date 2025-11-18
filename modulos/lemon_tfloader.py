@@ -41,8 +41,8 @@ class LemonTFLoader(LemonDataset):
             return self._augment(image, label)
 
         def no_augment():
-            #return image, label
-            return self._augment(image, label)
+            return image, label
+            #return self._augment(image, label)
         return tf.cond(tf.equal(tf.argmax(label), self.class_to_index['empty']), augment, no_augment)
 
     def get_datasets(self):
