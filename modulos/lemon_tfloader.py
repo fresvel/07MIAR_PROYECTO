@@ -1,6 +1,7 @@
 import tensorflow as tf
 from modulos.lemon_dataset import LemonDataset
 
+
 class LemonTFLoader(LemonDataset):
     def __init__(self, img_size=(224,224), batch_size=32, mode='scratch'):
         LemonDataset.__init__(self, mode=mode, loader="tf")
@@ -8,6 +9,7 @@ class LemonTFLoader(LemonDataset):
         self.batch_size = batch_size
         self._create_splits()
         self.class_to_index = {"bad": 0, "empty": 1, "good": 2}
+        self.mode=mode
         
 
     def _process_path(self, file_path, label):
@@ -18,6 +20,25 @@ class LemonTFLoader(LemonDataset):
         image = tf.cast(image, tf.float32) / 255.0
         label = tf.one_hot(label, depth=3)
         return image, label
+
+
+    def _process_path(self, file_path, label):
+        image = tf.io.read_file(file_path)
+        image = tf.image.decode_jpeg(image, channels=3)
+        image = tf.image.resize(image, self.img_size)
+        image = tf.cast(image, tf.float32)
+
+        if self.mode == "scratch":
+            image = image / 255.0
+            print("Entrenamiento modo Scratch")
+        elif self.mode=="trasfer":
+            print("Entrenamiento modo Transfer")
+            image = self.preprocess_fn(image)
+
+        label = tf.one_hot(label, depth=3)
+        return image, label
+
+
 
     def _augment(self, image, label):
         image = tf.image.random_flip_left_right(image)
@@ -36,9 +57,9 @@ class LemonTFLoader(LemonDataset):
         Aplica augmentación solo si la clase es 'empty' (índice 1).
         """
         def augment():
-            #return image, label
-            print("-----------------Augment agregado------------")
-            return self._augment(image, label)
+            return image, label
+            #print("-----------------Augment agregado------------")
+            #return self._augment(image, label)
 
         def no_augment():
             return image, label
