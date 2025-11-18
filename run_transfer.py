@@ -15,7 +15,7 @@ RUNS = 10
 IMG_SIZE = (224, 224)
 BATCH_SIZE = 32
 
-ARCHITECTURE = "resnet50"     # Cambia aquí para probar otra red: "xception", "inceptionv3", etc.
+ARCHITECTURE = "xception"     # Cambia aquí para probar otra red: "xception", "inceptionv3", etc.
 FINE_TUNE_AT = 40             # Cuántas capas descongelar en el fine tuning
 
 SAVE_DIR = "./results_transfer/" + ARCHITECTURE
