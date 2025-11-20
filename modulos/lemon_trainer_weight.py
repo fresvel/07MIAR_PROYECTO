@@ -1,4 +1,16 @@
-# modulos/lemon_trainer.py
+"""Entrenador unificado para el proyecto 07MIAR.
+
+Este módulo define la configuración y la clase `LemonTrainer` que
+centraliza el flujo de entrenamiento: preparación de datos (soporta
+`ImageDataGenerator` y `tf.data`), construcción del modelo, compilación,
+entrenamiento con opciones de ponderación por clase, evaluación y
+visualización del historial.
+
+Clases principales:
+- `TrainerConfig`: dataclass con parámetros configurables del experimento.
+- `LemonTrainer`: clase que implementa el flujo completo de entrenamiento.
+"""
+
 from __future__ import annotations
 import os
 from dataclasses import dataclass
@@ -21,6 +33,22 @@ from modulos.lemon_cnn_model import LemonCNNBuilder
 # ============================================================
 @dataclass
 class TrainerConfig:
+    """Configuración de entrenamiento.
+
+    Atributos:
+        loader: 'gen' para ImageDataGenerator o 'tf' para tf.data.
+        img_size: tamaño objetivo (alto, ancho) de las imágenes.
+        batch_size: tamaño de lote.
+        epochs: número máximo de épocas.
+        learning_rate: tasa de aprendizaje inicial.
+        mode: 'scratch' o 'transfer' — afecta parámetros de augmentación.
+        model_out: nombre de archivo donde guardar el mejor modelo.
+        patience_es: paciencia para EarlyStopping.
+        patience_rlrop: paciencia para ReduceLROnPlateau.
+        min_lr: lr mínimo permitido.
+        save_dir: carpeta base para resultados.
+        num_classes: número de clases de salida.
+    """
     loader: str = "gen"           # "gen" → ImageDataGenerator, "tf" → tf.data
     img_size: Tuple[int,int] = (224,224)
     batch_size: int = 32
@@ -63,6 +91,14 @@ class LemonTrainer:
     # PREPARACIÓN DE DATOS
     # ----------------------------------------------------------
     def prepare_data(self, val_size=0.15, test_size=0.15, seed=42):
+        """Prepara los datos según `cfg.loader`.
+
+        - Si `loader=='gen'` crea un `LemonGenLoader` y obtiene generators.
+        - Si `loader=='tf'` crea un `LemonTFLoader`, genera splits y obtiene
+          `tf.data.Dataset`.
+
+        Devuelve `self` para permitir encadenado (`.prepare_data().build_model()`).
+        """
         if self.cfg.loader == "gen":
             self.loader = LemonGenLoader(
                 img_size=self.cfg.img_size,
@@ -89,6 +125,10 @@ class LemonTrainer:
     # MODELO
     # ----------------------------------------------------------
     def build_model(self):
+        """Construye el modelo Keras usando `LemonCNNBuilder`.
+
+        No compila el modelo; llama a `compile_model()` posteriormente.
+        """
         self.builder = LemonCNNBuilder(
             input_shape=(self.cfg.img_size[0], self.cfg.img_size[1], 3),
             num_classes=self.cfg.num_classes
@@ -97,6 +137,10 @@ class LemonTrainer:
         return self
 
     def compile_model(self):
+        """Compila el modelo con Adam y pérdida categórica.
+
+        Ajusta la métrica a 'accuracy' por defecto.
+        """
         self.model.compile(
             optimizer=Adam(self.cfg.learning_rate),
             loss="categorical_crossentropy",
@@ -108,6 +152,7 @@ class LemonTrainer:
     # CALLBACKS
     # ----------------------------------------------------------
     def _callbacks(self):
+        """Lista de callbacks estándar: EarlyStopping, ReduceLROnPlateau y ModelCheckpoint."""
         return [
             EarlyStopping(monitor="val_loss", patience=self.cfg.patience_es, restore_best_weights=True),
             ReduceLROnPlateau(monitor="val_loss", factor=0.2, patience=self.cfg.patience_rlrop, min_lr=self.cfg.min_lr),
@@ -118,6 +163,14 @@ class LemonTrainer:
     # TRAIN con PONDERACIÓN DE CLASES
     # ----------------------------------------------------------
     def train(self):
+        """Entrena el modelo.
+
+        - Calcula ponderaciones de clase (si procede) y las pasa a
+          `model.fit` cuando se utiliza `tf.data`.
+        - Ejecuta el ajuste con callbacks definidos en `_callbacks`.
+
+        Devuelve `self` y guarda el `history` en `self.history`.
+        """
         print("******** Training model *******")
         print("Loader:", self.cfg.loader)
 
@@ -125,9 +178,11 @@ class LemonTrainer:
         # Calcular ponderación de clases
         # ------------------------------------------------------
         if self.cfg.loader == "tf":
+            # Para tf.data el split puede contener tensores; normalizamos a lista
             _, labels = self.loader.splits["train"]
             labels = labels.numpy().tolist() if isinstance(labels, tf.Tensor) else list(labels)
         else:
+            # Para generators usamos el DataFrame interno
             labels = self.loader._train_df["class"].map({"bad": 0, "empty": 1, "good": 2}).values
 
         class_weights = compute_class_weight(
@@ -136,15 +191,27 @@ class LemonTrainer:
             y=labels
         )
 
+        # Opcional: suavizar y limitar rango de pesos (ajustable)
         alpha = 0.5         # suaviza a la raíz cuadrada
         max_ratio = 2.5     # no permitas que ninguna clase pese >2.5x otra
 
-        w = np.power(class_weights, alpha)
-        w = np.minimum(w, np.max(w)/np.minimum.reduce([1,1]) )  # opcional
-        # o normaliza por el máximo para limitar el rango
-        w = w / np.max(w) * max_ratio
+        # Suavizar los pesos (por ejemplo raíz) y normalizarlos para limitar
+        # la influencia máxima de una clase. Evitamos divisiones por cero.
+        w = np.array(class_weights, dtype=float)
+        w = np.power(w, alpha)
 
-        class_weight_dict = dict(enumerate(class_weights))
+        max_w = np.max(w)
+        if max_w <= 0:
+            # En caso extremadamente raro de todos ceros, dejar los pesos originales
+            scaled_w = w
+        else:
+            # Escalar para que el valor máximo sea `max_ratio`
+            scaled_w = w / max_w * max_ratio
+
+        # Construir el dict que Keras espera: {class_index: weight}
+        class_weight_dict = {int(i): float(wi) for i, wi in enumerate(scaled_w)}
+        print("Class weights (original):", dict(enumerate(class_weights)))
+        print("Class weights (scaled):", class_weight_dict)
         print("Class weights:", class_weight_dict)
 
         # ------------------------------------------------------
@@ -168,6 +235,7 @@ class LemonTrainer:
     # EVALUACIÓN FINAL
     # ----------------------------------------------------------
     def evaluate(self) -> Dict[str, Any]:
+        """Evalúa el modelo en el conjunto de prueba y devuelve métricas clave."""
         test_loss, test_acc = self.model.evaluate(self.test_ds, verbose=0)
         return {
             "test_loss": float(test_loss),
@@ -179,6 +247,7 @@ class LemonTrainer:
     # VISUALIZACIÓN
     # ----------------------------------------------------------
     def plot_history(self):
+        """Dibuja y guarda el historial de entrenamiento (loss y accuracy)."""
         if self.history is None:
             raise RuntimeError("No hay 'history'. Entrena el modelo primero con .train().")
 

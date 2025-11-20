@@ -37,41 +37,47 @@ BASE_MODELS = {
 
 
 class LemonTransferTrainer(LemonTrainer):
-    """
-    Versión de LemonTrainer adaptada para Transfer Learning + Fine Tuning.
-    Reutiliza toda la infraestructura del Trainer original, cambiando solo:
-    - build_model()
-    - train() en dos fases
+    """Trainer especializado en Transfer Learning + Fine Tuning.
+
+    Extiende `LemonTrainer` y añade métodos para construir una cabeza
+    clasificadora sobre un modelo base pre-entrenado, entrenar solo la
+    cabeza y posteriormente realizar fine-tuning parcial.
     """
 
     def __init__(self, config: Optional[TrainerConfig] = None, attempt="",
-                 architecture="resnet50", fine_tune_at=40):
+                 architecture: str = "resnet50", fine_tune_at: int = 40):
 
         super().__init__(config, attempt)
 
         self.architecture = architecture.lower()
-        self.fine_tune_at = fine_tune_at
-        self.prep_fn = PREPROCESSORS[self.architecture]
+        if self.architecture not in BASE_MODELS:
+            raise ValueError(f"Arquitectura desconocida '{architecture}'. Opciones: {list(BASE_MODELS.keys())}")
 
+        # número de capas desde el final que se desbloquearán para fine-tuning
+        self.fine_tune_at = int(fine_tune_at) if fine_tune_at is not None else 0
+        self.prep_fn = PREPROCESSORS.get(self.architecture)
+
+        # placeholders que se llenan en build_model
+        self.base_model = None
 
     # ------------------------------------------------------
     # PREPARACIÓN DE DATOS (reusa prepare_data())
     # ------------------------------------------------------
     def prepare_data(self, val_size=0.15, test_size=0.15, seed=42):
 
-        # Sobrescribimos solo el loader con preprocess_input
+        # Sobrescribimos solo el loader con preprocess_input si existe
         self.loader = LemonTFLoader(
             img_size=self.cfg.img_size,
             batch_size=self.cfg.batch_size,
             mode="transfer"
         )
-        self.loader.preprocess_fn = self.prep_fn
+        if self.prep_fn is not None:
+            self.loader.preprocess_fn = self.prep_fn
 
         self.loader._create_splits(val_size=val_size, test_size=test_size, seed=seed)
         self.train_ds, self.val_ds, self.test_ds = self.loader.get_datasets()
 
         return self
-
 
     # ------------------------------------------------------
     #    1. Construir modelo base + Top classifier
@@ -101,7 +107,6 @@ class LemonTransferTrainer(LemonTrainer):
 
         return self
 
-
     # ------------------------------------------------------
     #    2. FASE 1 — Entrenar solo top layers
     # ------------------------------------------------------
@@ -119,23 +124,31 @@ class LemonTransferTrainer(LemonTrainer):
         ]
 
         print("** Entrenando solo top layers **")
+        steps = getattr(self.loader, "steps_per_epoch", None)
         return self.model.fit(
             self.train_ds,
             validation_data=self.val_ds,
             epochs=self.cfg.epochs,
             callbacks=cb,
-            steps_per_epoch=self.loader.steps_per_epoch,
+            steps_per_epoch=steps,
             verbose=1
         )
-
 
     # ------------------------------------------------------
     #    3. FASE 2 — Fine tuning parcial
     # ------------------------------------------------------
     def _train_finetune(self):
 
-        for layer in self.base_model.layers[-self.fine_tune_at:]:
-            layer.trainable = True
+        if self.base_model is None:
+            raise RuntimeError("El modelo base no está construido. Llama a build_model() antes de _train_finetune().")
+
+        total_layers = len(self.base_model.layers)
+        n = min(self.fine_tune_at, total_layers)
+        if n <= 0:
+            print("fine_tune_at <= 0, no se realizará fine-tuning.")
+        else:
+            for layer in self.base_model.layers[-n:]:
+                layer.trainable = True
 
         self.model.compile(
             optimizer=optimizers.Adam(1e-5),
@@ -149,23 +162,24 @@ class LemonTransferTrainer(LemonTrainer):
         ]
 
         print("** Fine Tuning activado **")
+        steps = getattr(self.loader, "steps_per_epoch", None)
         return self.model.fit(
             self.train_ds,
             validation_data=self.val_ds,
             epochs=self.cfg.epochs,
             callbacks=cb,
-            steps_per_epoch=self.loader.steps_per_epoch,
+            steps_per_epoch=steps,
             verbose=1
         )
-
 
     # ------------------------------------------------------
     #   Sobrescribir método train()
     # ------------------------------------------------------
     def train(self):
-        print("********Training Transfer Model*******")
+        print("******** Training Transfer Model *******")
         print("Architecture:", self.architecture)
-        print("Steps:", self.loader.steps_per_epoch)
+        steps = getattr(self.loader, "steps_per_epoch", None)
+        print("Steps:", steps)
 
         # fase 1
         self.history_head = self._train_head()

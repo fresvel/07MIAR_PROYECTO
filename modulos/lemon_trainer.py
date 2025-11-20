@@ -1,4 +1,11 @@
 # modulos/lemon_trainer.py
+"""Entrenador unificado para el proyecto 07MIAR.
+
+Proporciona una clase `LemonTrainer` que encapsula el flujo completo
+de entrenamiento: preparación de datos (soporta `ImageDataGenerator` y
+`tf.data`), construcción del modelo, compilación, entrenamiento,
+evaluación y visualización del historial.
+"""
 from __future__ import annotations
 import os
 from dataclasses import dataclass
@@ -15,18 +22,30 @@ from modulos.lemon_cnn_model import LemonCNNBuilder
 
 @dataclass
 class TrainerConfig:
-    loader: str = "gen"           # "gen" → ImageDataGenerator, "tf" → tf.data
-    img_size: Tuple[int,int] = (224,224)
-    batch_size: int = 32
-    epochs: int = 50
-    learning_rate: float = 1e-3
-    mode: str = "scratch"         # afecta augmentación
-    model_out: str = "model_best.keras"
-    patience_es: int = 20
-    patience_rlrop: int = 8
-    min_lr: float = 1e-6
-    save_dir: str = "./results"
-    num_classes: int = 3
+        """Configuración del experimento para `LemonTrainer`.
+
+        Atributos principales:
+            - `loader`: 'gen' para ImageDataGenerator o 'tf' para tf.data.
+            - `img_size`: tupla (alto, ancho) usada para redimensionar imágenes.
+            - `batch_size`, `epochs`, `learning_rate`: parámetros estándar.
+            - `mode`: 'scratch' o 'transfer' (afecta augmentación en loaders).
+            - `model_out`: nombre de archivo para guardar el mejor modelo.
+            - `patience_es`, `patience_rlrop`, `min_lr`: parámetros de callbacks.
+            - `save_dir`: directorio base para resultados.
+            - `num_classes`: número de clases de salida.
+        """
+        loader: str = "gen"           # "gen" → ImageDataGenerator, "tf" → tf.data
+        img_size: Tuple[int,int] = (224,224)
+        batch_size: int = 32
+        epochs: int = 50
+        learning_rate: float = 1e-3
+        mode: str = "scratch"         # afecta augmentación
+        model_out: str = "model_best.keras"
+        patience_es: int = 20
+        patience_rlrop: int = 8
+        min_lr: float = 1e-6
+        save_dir: str = "./results"
+        num_classes: int = 3
 
 
 class LemonTrainer:
@@ -52,7 +71,15 @@ class LemonTrainer:
     # PREPARACIÓN DE DATOS
     # -------------------------
     def prepare_data(self, val_size=0.15, test_size=0.15, seed=42):
-        
+        """Prepara los datos según `cfg.loader`.
+
+        - Si `loader=='gen'` crea un `LemonGenLoader` y obtiene generators.
+        - Si `loader=='tf'` crea un `LemonTFLoader`, genera splits y obtiene
+          `tf.data.Dataset`.
+
+        Devuelve `self` para permitir encadenado (`.prepare_data().build_model()`).
+        """
+
         if self.cfg.loader == "gen":
             self.loader = LemonGenLoader(
                 img_size=self.cfg.img_size,
@@ -79,6 +106,10 @@ class LemonTrainer:
     # MODELO
     # -------------------------
     def build_model(self):
+        """Construye la arquitectura del modelo usando `LemonCNNBuilder`.
+
+        No compila el modelo; llame a `compile_model()` para compilarlo.
+        """
         self.builder = LemonCNNBuilder(
             input_shape=(self.cfg.img_size[0], self.cfg.img_size[1], 3),
             num_classes=self.cfg.num_classes
@@ -87,6 +118,10 @@ class LemonTrainer:
         return self
 
     def compile_model(self):
+        """Compila el modelo con Adam y pérdida categórica.
+
+        Ajusta métricas a `accuracy`.
+        """
         self.model.compile(
             optimizer=Adam(self.cfg.learning_rate),
             loss="categorical_crossentropy",
@@ -98,6 +133,10 @@ class LemonTrainer:
     # CALLBACKS
     # -------------------------
     def _callbacks(self):
+        """Devuelve los callbacks usados durante el entrenamiento.
+
+        Incluye EarlyStopping, ReduceLROnPlateau y ModelCheckpoint.
+        """
         return [
             EarlyStopping(monitor="val_loss", patience=self.cfg.patience_es, restore_best_weights=True),
             ReduceLROnPlateau(monitor="val_loss", factor=0.2, patience=self.cfg.patience_rlrop, min_lr=self.cfg.min_lr),
@@ -108,18 +147,23 @@ class LemonTrainer:
     # TRAIN
     # -------------------------
     def train(self):
-        
-        print("********Training model*******")
+        """Entrena el modelo usando los datasets/generadores preparados.
+
+        Usa `steps_per_epoch` del loader si está definido; Keras calculará
+        automáticamente los pasos si se pasa `None`.
+        """
+        print("******** Training model *******")
         print("Loader:", self.cfg.loader)
-        print("Steps:",self.loader.steps_per_epoch)
-        
+        steps = getattr(self.loader, "steps_per_epoch", None)
+        print("Steps:", steps)
+
         self.history = self.model.fit(
             self.train_ds,
             validation_data=self.val_ds,
             epochs=self.cfg.epochs,
             callbacks=self._callbacks(),
             verbose=1,
-            steps_per_epoch=self.loader.steps_per_epoch
+            steps_per_epoch=steps
         )
         return self
 
@@ -127,6 +171,11 @@ class LemonTrainer:
     # EVALUATE
     # -------------------------
     def evaluate(self) -> Dict[str, Any]:
+        """Evalúa el modelo en el conjunto de prueba y devuelve métricas.
+
+        Retorna un diccionario con `test_loss`, `test_accuracy` y la ruta
+        al mejor modelo guardado.
+        """
         test_loss, test_acc = self.model.evaluate(self.test_ds, verbose=0)
         return {
             "test_loss": float(test_loss),
@@ -138,9 +187,13 @@ class LemonTrainer:
     # VISUALIZACIÓN
     # -------------------------
     def plot_history(self):
+        """Dibuja y guarda las curvas de pérdida y accuracy del entrenamiento.
+
+        Lanza `RuntimeError` si no existe `self.history` (entrenar primero).
+        """
         if self.history is None:
             raise RuntimeError("No hay 'history'. Entrena el modelo primero con .train().")
-        
+
         hist = self.history.history
         plt.figure(figsize=(12, 5))
         plt.subplot(1, 2, 1)
@@ -152,7 +205,8 @@ class LemonTrainer:
         plt.subplot(1, 2, 2)
         plt.plot(hist["accuracy"], label="Train Acc")
         plt.plot(hist["val_accuracy"], label="Val Acc")
-        plt.title("Accuracy"); plt.legend()
+        plt.title("Accuracy")
+        plt.legend()
         plt.savefig(os.path.join(self.save_dir, "history.png"))
         plt.show()
         return self
