@@ -24,34 +24,35 @@ class LemonDataset():
     Esta clase se usa como punto de partida para distintos loaders
     (`LemonTFLoader`, `LemonGenLoader`) y centraliza:
     - la recolección de rutas de imagen y etiquetas
-    - parámetros de augmentación por defecto
+    - parámetros de augmentation por defecto
     - creación de splits estratificados
 
     Args:
         mode (str): 'scratch' o cualquier otro valor para ajustar
-            hiperparámetros de augmentación.
+            hiperparámetros de augmentation.
         loader (str): 'tf' o 'gen' para indicar el tipo de loader
             que usará las rutas recopiladas.
     """
 
     def __init__(self, mode='scratch', loader='tf'):
         # Mapas de directorios por clase (se pueden ajustar si cambia la estructura)
-        self.dir_path= {
+        self.dir_path = {
             'bad': 'lemon_dataset/bad_quality',
             'empty': 'lemon_dataset/empty_background',
             'good': 'lemon_dataset/good_quality'
         }
 
         # Prefijo de nombre de fichero asumido por el dataset (ej. 'bad/bad_')
-        self.img_path={
-            label: self.dir_path[label] + '/' + self.dir_path[label].split('/')[-1] + '_'
+        self.img_path = {
+            label: self.dir_path[label] + '/' +
+            self.dir_path[label].split('/')[-1] + '_'
             for label in self.dir_path
         }
 
         self.size = {}
         self.loader = loader
 
-        # Parámetros de augmentación por defecto, según modo
+        # Parámetros de augmentation por defecto, según modo
         if mode == 'scratch':
             self.rotation_range = 20
             self.zoom_range = (0.75, 1.0)
@@ -70,22 +71,20 @@ class LemonDataset():
         # Recolectar rutas de imágenes y etiquetas en `self.dataframe`
         self._collect_dataset()
 
-
     def class_counter(self):
         """Cuenta imágenes por clase y muestra un DataFrame con los totales."""
         for label in self.dir_path:
             self.size[label] = len(os.listdir(self.dir_path[label]))
 
         dic_size = {label: [self.size[label]] for label in self.size}
-        df_size = pd.DataFrame(dic_size).melt(var_name="Clase", value_name="Cantidad")
+        df_size = pd.DataFrame(dic_size).melt(
+            var_name="Clase", value_name="Cantidad")
         display(df_size)
-
 
     def show_grid_per_class(self, n=9):
         """Muestra `n` veces una muestra aleatoria por clase (usa `show_samples`)."""
         for i in range(n):
             self.show_samples()
-
 
     def show_samples(self):
         """Muestra una imagen aleatoria de cada clase en una figura.
@@ -93,7 +92,8 @@ class LemonDataset():
         Esta función es útil para una inspección visual rápida del dataset.
         """
         fig, ax = plt.subplots(1, 3, figsize=(18, 5))
-        idx = {label: np.random.randint(0, self.size[label]) for label in self.size}
+        idx = {label: np.random.randint(
+            0, self.size[label]) for label in self.size}
 
         for i, label in enumerate(idx):
             img_path = self.img_path[label] + str(idx[label]) + '.jpg'
@@ -102,7 +102,6 @@ class LemonDataset():
             ax[i].imshow(img)
             ax[i].set_title(label)
             ax[i].axis('off')
-
 
     def check_image_shapes(self):
         """Recorre las imágenes y cuenta las dimensiones encontradas.
@@ -134,7 +133,6 @@ class LemonDataset():
 
         display(df_shapes.sort_values("Cantidad", ascending=False))
 
-
     def _collect_dataset(self):
         """Recopila rutas de imagen y etiquetas en `self.dataframe`.
 
@@ -165,8 +163,8 @@ class LemonDataset():
             self.labels = self.dataframe['label'].values
         else:
             # corregido: usar self.loader en lugar de self.cfg
-            raise ValueError(f"loader '{self.loader}' no reconocido. Use 'gen' o 'tf'.")
-
+            raise ValueError(
+                f"loader '{self.loader}' no reconocido. Use 'gen' o 'tf'.")
 
     def _create_splits(self, test_size=0.15, val_size=0.15, seed=42):
         """Divide el dataset en train/val/test manteniendo estratificación.
@@ -197,13 +195,8 @@ class LemonDataset():
             "test": (X_test, y_test)
         }
 
-
     def __str__(self):
-        # Mostrar una muestra y devolver información compacta
+        """Mostrar una muestra y devolver información compacta"""
         self.show_samples()
         salida = str(self.size)
         return salida
-
-
-
-
