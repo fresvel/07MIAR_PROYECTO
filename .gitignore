@@ -1,1 +1,5 @@
+# Ignore the Kaggle API token file
 kaggle.json
+
+# Ignore vscode settings folder
+.vscode/
