@@ -83,7 +83,7 @@ class LemonDataset():
 
     def show_grid_per_class(self, n=9):
         """Muestra `n` veces una muestra aleatoria por clase (usa `show_samples`)."""
-        for i in range(n):
+        for _ in range(n):
             self.show_samples()
 
     def show_samples(self):
@@ -91,8 +91,9 @@ class LemonDataset():
 
         Esta función es útil para una inspección visual rápida del dataset.
         """
-        fig, ax = plt.subplots(1, 3, figsize=(18, 5))
-        idx = {label: np.random.randint(
+        g = np.random.default_rng()  # NOSONAR(S6709) # generador aleatorio
+        _, ax = plt.subplots(1, 3, figsize=(18, 5))
+        idx = {label: g.integers(
             0, self.size[label]) for label in self.size}
 
         for i, label in enumerate(idx):
