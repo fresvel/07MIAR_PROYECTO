@@ -5,7 +5,7 @@ de entrenamiento, validación y test usando `ImageDataGenerator`.
 
 Principales características:
 - Separación del conjunto de entrenamiento en subconjuntos para aplicar
-  aumentos sólo a la clase `empty` (ejemplo de balanceo/augmentación dirigida).
+  aumentos sólo a la clase `empty` (ejemplo de balanceo/augmentation dirigida).
 - `combined_gen` mezcla los batches de las dos fuentes para producir
   lotes combinados y mezclados.
 """
@@ -32,7 +32,7 @@ class LemonGenLoader(LemonDataset):
         mode (str): Modo heredado para `LemonDataset` (por defecto 'scratch').
     """
 
-    def __init__(self, img_size=(224,224), batch_size=32, mode='scratch'):
+    def __init__(self, img_size=(224, 224), batch_size=32, mode='scratch'):
         super().__init__(mode, "gen")
         self.img_size = img_size
         self.batch_size = batch_size
@@ -145,4 +145,3 @@ class LemonGenLoader(LemonDataset):
             self.steps_per_epoch = None
 
         return combined_gen(), val_gen, test_gen
-
