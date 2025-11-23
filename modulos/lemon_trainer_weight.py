@@ -12,20 +12,22 @@ Clases principales:
 """
 
 from __future__ import annotations
+
 import os
 from dataclasses import dataclass
-from typing import Tuple, Optional, Dict, Any
+from typing import Any, Dict, Optional, Tuple
 
-import tensorflow as tf
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 import matplotlib.pyplot as plt
 import numpy as np
+import tensorflow as tf
 from sklearn.utils.class_weight import compute_class_weight
+from tensorflow.keras.callbacks import (EarlyStopping, ModelCheckpoint,
+                                        ReduceLROnPlateau)
+from tensorflow.keras.optimizers import Adam
 
-from modulos.lemon_tfloader import LemonTFLoader
-from modulos.lemon_genloader import LemonGenLoader
 from modulos.lemon_cnn_model import LemonCNNBuilder
+from modulos.lemon_genloader import LemonGenLoader
+from modulos.lemon_tfloader import LemonTFLoader
 
 
 # ============================================================
@@ -41,7 +43,7 @@ class TrainerConfig:
         batch_size: tamaño de lote.
         epochs: número máximo de épocas.
         learning_rate: tasa de aprendizaje inicial.
-        mode: 'scratch' o 'transfer' — afecta parámetros de augmentación.
+        mode: 'scratch' o 'transfer' — afecta parámetros de augmentation.
         model_out: nombre de archivo donde guardar el mejor modelo.
         patience_es: paciencia para EarlyStopping.
         patience_rlrop: paciencia para ReduceLROnPlateau.
@@ -50,11 +52,11 @@ class TrainerConfig:
         num_classes: número de clases de salida.
     """
     loader: str = "gen"           # "gen" → ImageDataGenerator, "tf" → tf.data
-    img_size: Tuple[int,int] = (224,224)
+    img_size: Tuple[int, int] = (224, 224)
     batch_size: int = 32
     epochs: int = 50
     learning_rate: float = 1e-3
-    mode: str = "scratch"         # afecta augmentación
+    mode: str = "scratch"         # afecta augmentation
     model_out: str = "model_best.keras"
     patience_es: int = 20
     patience_rlrop: int = 8
@@ -72,6 +74,7 @@ class LemonTrainer:
     Decide automáticamente si usar ImageDataGenerator o tf.data según config.loader.
     Mantiene constantes el modelo, el optimizador y la lógica experimental.
     """
+
     def __init__(self, config: Optional[TrainerConfig] = None, attempt=""):
         self.cfg = config or TrainerConfig()
         self.loader = None
@@ -83,7 +86,8 @@ class LemonTrainer:
         self.history = None
 
         # Crear carpeta de salida
-        self.save_dir = os.path.join(self.cfg.save_dir, self.cfg.loader, attempt)
+        self.save_dir = os.path.join(
+            self.cfg.save_dir, self.cfg.loader, attempt)
         os.makedirs(self.save_dir, exist_ok=True)
         self.best_model_path = os.path.join(self.save_dir, self.cfg.model_out)
 
@@ -113,11 +117,13 @@ class LemonTrainer:
                 batch_size=self.cfg.batch_size,
                 mode=self.cfg.mode
             )
-            self.loader._create_splits(val_size=val_size, test_size=test_size, seed=seed)
+            self.loader._create_splits(
+                val_size=val_size, test_size=test_size, seed=seed)
             self.train_ds, self.val_ds, self.test_ds = self.loader.get_datasets()
 
         else:
-            raise ValueError(f"loader '{self.cfg.loader}' no reconocido. Use 'gen' o 'tf'.")
+            raise ValueError(
+                f"loader '{self.cfg.loader}' no reconocido. Use 'gen' o 'tf'.")
 
         return self
 
@@ -154,9 +160,12 @@ class LemonTrainer:
     def _callbacks(self):
         """Lista de callbacks estándar: EarlyStopping, ReduceLROnPlateau y ModelCheckpoint."""
         return [
-            EarlyStopping(monitor="val_loss", patience=self.cfg.patience_es, restore_best_weights=True),
-            ReduceLROnPlateau(monitor="val_loss", factor=0.2, patience=self.cfg.patience_rlrop, min_lr=self.cfg.min_lr),
-            ModelCheckpoint(self.best_model_path, monitor="val_loss", save_best_only=True)
+            EarlyStopping(
+                monitor="val_loss", patience=self.cfg.patience_es, restore_best_weights=True),
+            ReduceLROnPlateau(monitor="val_loss", factor=0.2,
+                              patience=self.cfg.patience_rlrop, min_lr=self.cfg.min_lr),
+            ModelCheckpoint(self.best_model_path,
+                            monitor="val_loss", save_best_only=True)
         ]
 
     # ----------------------------------------------------------
@@ -180,10 +189,12 @@ class LemonTrainer:
         if self.cfg.loader == "tf":
             # Para tf.data el split puede contener tensores; normalizamos a lista
             _, labels = self.loader.splits["train"]
-            labels = labels.numpy().tolist() if isinstance(labels, tf.Tensor) else list(labels)
+            labels = labels.numpy().tolist() if isinstance(
+                labels, tf.Tensor) else list(labels)
         else:
             # Para generators usamos el DataFrame interno
-            labels = self.loader._train_df["class"].map({"bad": 0, "empty": 1, "good": 2}).values
+            labels = self.loader._train_df["class"].map(
+                {"bad": 0, "empty": 1, "good": 2}).values
 
         class_weights = compute_class_weight(
             class_weight="balanced",
@@ -209,7 +220,8 @@ class LemonTrainer:
             scaled_w = w / max_w * max_ratio
 
         # Construir el dict que Keras espera: {class_index: weight}
-        class_weight_dict = {int(i): float(wi) for i, wi in enumerate(scaled_w)}
+        class_weight_dict = {int(i): float(wi)
+                             for i, wi in enumerate(scaled_w)}
         print("Class weights (original):", dict(enumerate(class_weights)))
         print("Class weights (scaled):", class_weight_dict)
         print("Class weights:", class_weight_dict)
@@ -230,10 +242,10 @@ class LemonTrainer:
         )
         return self
 
-
     # ----------------------------------------------------------
     # EVALUACIÓN FINAL
     # ----------------------------------------------------------
+
     def evaluate(self) -> Dict[str, Any]:
         """Evalúa el modelo en el conjunto de prueba y devuelve métricas clave."""
         test_loss, test_acc = self.model.evaluate(self.test_ds, verbose=0)
@@ -249,7 +261,8 @@ class LemonTrainer:
     def plot_history(self):
         """Dibuja y guarda el historial de entrenamiento (loss y accuracy)."""
         if self.history is None:
-            raise RuntimeError("No hay 'history'. Entrena el modelo primero con .train().")
+            raise RuntimeError(
+                "No hay 'history'. Entrena el modelo primero con .train().")
 
         hist = self.history.history
         plt.figure(figsize=(12, 5))

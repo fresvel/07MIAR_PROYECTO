@@ -10,11 +10,13 @@ dataset y el mejor modelo están disponibles).
 """
 
 import os
+
+import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-from sklearn.metrics import confusion_matrix, classification_report
+from sklearn.metrics import classification_report, confusion_matrix
+
 from modulos.lemon_trainer import LemonTrainer, TrainerConfig
-import matplotlib.pyplot as plt
 
 
 def safe_load_model(path: str):
@@ -79,14 +81,16 @@ def show_misclassified(model, dataset, class_names, max_images=9):
 
             plt.figure(figsize=(3, 3))
             plt.imshow(img)
-            plt.title(f"Real: {class_names[y_true[idx]]}\nPred: {class_names[y_pred[idx]]}")
+            plt.title(
+                f"Real: {class_names[y_true[idx]]}\nPred: {class_names[y_pred[idx]]}")
             plt.axis("off")
             plt.show()
 
 
 if __name__ == "__main__":
     # -- 1) Reconstruimos el trainer para obtener los datasets (sin reentrenar)
-    cfg = TrainerConfig(loader="tf", mode="scratch")   # usar el mismo loader que en entrenamiento
+    # usar el mismo loader que en entrenamiento
+    cfg = TrainerConfig(loader="tf", mode="scratch")
     trainer = LemonTrainer(cfg)
     trainer.prepare_data()  # esto reconstruye train/val/test
 
@@ -107,7 +111,3 @@ if __name__ == "__main__":
 
     # -- 4) Visualizar mal clasificadas
     show_misclassified(model, trainer.test_ds, class_names)
-
-
-
-
