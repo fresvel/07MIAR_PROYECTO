@@ -7,45 +7,48 @@ de entrenamiento: preparación de datos (soporta `ImageDataGenerator` y
 evaluación y visualización del historial.
 """
 from __future__ import annotations
+
 import os
 from dataclasses import dataclass
-from typing import Tuple, Optional, Dict, Any
+from typing import Any, Dict, Optional, Tuple
 
-import tensorflow as tf
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 import matplotlib.pyplot as plt
+import tensorflow as tf
+from tensorflow.keras.callbacks import (EarlyStopping, ModelCheckpoint,
+                                        ReduceLROnPlateau)
+from tensorflow.keras.optimizers import Adam
 
-from modulos.lemon_tfloader import LemonTFLoader
-from modulos.lemon_genloader import LemonGenLoader
 from modulos.lemon_cnn_model import LemonCNNBuilder
+from modulos.lemon_genloader import LemonGenLoader
+from modulos.lemon_tfloader import LemonTFLoader
+
 
 @dataclass
 class TrainerConfig:
-        """Configuración del experimento para `LemonTrainer`.
+    """Configuración del experimento para `LemonTrainer`.
 
-        Atributos principales:
-            - `loader`: 'gen' para ImageDataGenerator o 'tf' para tf.data.
-            - `img_size`: tupla (alto, ancho) usada para redimensionar imágenes.
-            - `batch_size`, `epochs`, `learning_rate`: parámetros estándar.
-            - `mode`: 'scratch' o 'transfer' (afecta augmentación en loaders).
-            - `model_out`: nombre de archivo para guardar el mejor modelo.
-            - `patience_es`, `patience_rlrop`, `min_lr`: parámetros de callbacks.
-            - `save_dir`: directorio base para resultados.
-            - `num_classes`: número de clases de salida.
-        """
-        loader: str = "gen"           # "gen" → ImageDataGenerator, "tf" → tf.data
-        img_size: Tuple[int,int] = (224,224)
-        batch_size: int = 32
-        epochs: int = 50
-        learning_rate: float = 1e-3
-        mode: str = "scratch"         # afecta augmentación
-        model_out: str = "model_best.keras"
-        patience_es: int = 20
-        patience_rlrop: int = 8
-        min_lr: float = 1e-6
-        save_dir: str = "./results"
-        num_classes: int = 3
+    Atributos principales:
+        - `loader`: 'gen' para ImageDataGenerator o 'tf' para tf.data.
+        - `img_size`: tupla (alto, ancho) usada para redimensionar imágenes.
+        - `batch_size`, `epochs`, `learning_rate`: parámetros estándar.
+        - `mode`: 'scratch' o 'transfer' (afecta augmentation en loaders).
+        - `model_out`: nombre de archivo para guardar el mejor modelo.
+        - `patience_es`, `patience_rlrop`, `min_lr`: parámetros de callbacks.
+        - `save_dir`: directorio base para resultados.
+        - `num_classes`: número de clases de salida.
+    """
+    loader: str = "gen"           # "gen" → ImageDataGenerator, "tf" → tf.data
+    img_size: Tuple[int, int] = (224, 224)
+    batch_size: int = 32
+    epochs: int = 50
+    learning_rate: float = 1e-3
+    mode: str = "scratch"         # afecta augmentation
+    model_out: str = "model_best.keras"
+    patience_es: int = 20
+    patience_rlrop: int = 8
+    min_lr: float = 1e-6
+    save_dir: str = "./results"
+    num_classes: int = 3
 
 
 class LemonTrainer:
@@ -54,6 +57,7 @@ class LemonTrainer:
     Decide automáticamente si usar ImageDataGenerator o tf.data según config.loader.
     Mantiene constantes el modelo, el optimizador y la lógica experimental.
     """
+
     def __init__(self, config: Optional[TrainerConfig] = None, attempt=""):
         self.cfg = config or TrainerConfig()
         self.loader = None
@@ -63,7 +67,8 @@ class LemonTrainer:
         self.builder = None
         self.model = None
         self.history = None
-        self.save_dir = os.path.join(self.cfg.save_dir, self.cfg.loader, attempt)
+        self.save_dir = os.path.join(
+            self.cfg.save_dir, self.cfg.loader, attempt)
         os.makedirs(self.save_dir, exist_ok=True)
         self.best_model_path = os.path.join(self.save_dir, self.cfg.model_out)
 
@@ -94,11 +99,13 @@ class LemonTrainer:
                 batch_size=self.cfg.batch_size,
                 mode=self.cfg.mode
             )
-            self.loader._create_splits(val_size=val_size, test_size=test_size, seed=seed)
+            self.loader._create_splits(
+                val_size=val_size, test_size=test_size, seed=seed)
             self.train_ds, self.val_ds, self.test_ds = self.loader.get_datasets()
 
         else:
-            raise ValueError(f"loader '{self.cfg.loader}' no reconocido. Use 'gen' o 'tf'.")
+            raise ValueError(
+                f"loader '{self.cfg.loader}' no reconocido. Use 'gen' o 'tf'.")
 
         return self
 
@@ -138,9 +145,12 @@ class LemonTrainer:
         Incluye EarlyStopping, ReduceLROnPlateau y ModelCheckpoint.
         """
         return [
-            EarlyStopping(monitor="val_loss", patience=self.cfg.patience_es, restore_best_weights=True),
-            ReduceLROnPlateau(monitor="val_loss", factor=0.2, patience=self.cfg.patience_rlrop, min_lr=self.cfg.min_lr),
-            ModelCheckpoint(self.best_model_path, monitor="val_loss", save_best_only=True)
+            EarlyStopping(
+                monitor="val_loss", patience=self.cfg.patience_es, restore_best_weights=True),
+            ReduceLROnPlateau(monitor="val_loss", factor=0.2,
+                              patience=self.cfg.patience_rlrop, min_lr=self.cfg.min_lr),
+            ModelCheckpoint(self.best_model_path,
+                            monitor="val_loss", save_best_only=True)
         ]
 
     # -------------------------
@@ -192,7 +202,8 @@ class LemonTrainer:
         Lanza `RuntimeError` si no existe `self.history` (entrenar primero).
         """
         if self.history is None:
-            raise RuntimeError("No hay 'history'. Entrena el modelo primero con .train().")
+            raise RuntimeError(
+                "No hay 'history'. Entrena el modelo primero con .train().")
 
         hist = self.history.history
         plt.figure(figsize=(12, 5))
@@ -223,10 +234,10 @@ class LemonTrainer:
         ----------
         val_size : float, opcional (default=0.15)
             Proporción del dataset total que se asigna al conjunto de validación.
-        
+
         test_size : float, opcional (default=0.15)
             Proporción del dataset total que se reserva para el conjunto de prueba.
-        
+
         seed : int, opcional (default=42)
             Semilla para asegurar reproducibilidad en la división estratificada del dataset.
 
@@ -235,20 +246,20 @@ class LemonTrainer:
         1) **prepare_data()**
         - Divide el dataset en train/validation/test manteniendo balance de clases.
         - Crea los generadores o datasets según la estrategia configurada (GenLoader o TFLoader).
-        
+
         2) **build_model()**
         - Construye la arquitectura CNN propuesta mediante API Funcional.
         - Ajusta número de filtros, bloques convolucionales y capa densa final con softmax.
-        
+
         3) **compile_model()**
         - Compila el modelo con optimizador Adam, función de pérdida categorical_crossentropy
             y la métrica accuracy.
-        
+
         4) **train()**
         - Ejecuta el proceso de entrenamiento monitoreando val_loss.
         - Utiliza callbacks: EarlyStopping, ReduceLROnPlateau y ModelCheckpoint.
         - Guarda automáticamente el mejor modelo según desempeño en validación.
-        
+
         5) **evaluate()**
         - Evalúa el modelo entrenado en el conjunto de prueba (test), retornando métricas finales.
 
@@ -276,7 +287,7 @@ class LemonTrainer:
 
         De esta manera se asegura consistencia, reproducibilidad y organización en el proceso de experimentación.
         """
-        
+
         (self.prepare_data(val_size=val_size, test_size=test_size, seed=seed)
             .build_model()
             .compile_model()
@@ -284,5 +295,3 @@ class LemonTrainer:
         metrics = self.evaluate()
         self.plot_history()
         return metrics
-
-
