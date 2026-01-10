@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional, Tuple
 
 import matplotlib.pyplot as plt
-import pandas as pd
+import seaborn as sns
 import tensorflow as tf
 from tensorflow.keras.callbacks import (EarlyStopping, ModelCheckpoint,
                                         ReduceLROnPlateau)
@@ -197,51 +197,59 @@ class LemonTrainer:
     # -------------------------
     # VISUALIZACIÓN
     # -------------------------
+
     def plot_history(self):
-        """Dibuja y guarda curvas del entrenamiento (loss y métricas)."""
+        """Dibuja y guarda las curvas de pérdida y accuracy del entrenamiento.
+
+        Lanza `RuntimeError` si no existe `self.history` (entrenar primero).
+        """
         if self.history is None:
-            raise RuntimeError("No hay 'history'. Entrena el modelo primero con .train().")
+            raise RuntimeError(
+                "No hay 'history'. Entrena el modelo primero con .train().")
 
-        hist = pd.DataFrame(self.history.history)
+        hist = self.history.history
 
-        # Normalizar nombres típicos (acc -> accuracy) si hiciera falta
-        if "acc" in hist.columns and "accuracy" not in hist.columns:
-            hist = hist.rename(columns={"acc": "accuracy"})
-        if "val_acc" in hist.columns and "val_accuracy" not in hist.columns:
-            hist = hist.rename(columns={"val_acc": "val_accuracy"})
+        sns.set_theme(style="whitegrid")
 
-        # ---- 1) LOSS ----
-        loss_cols = [c for c in ["loss", "val_loss"] if c in hist.columns]
-        if loss_cols:
-            ax = hist[loss_cols].plot(
-                figsize=(12, 5),
-                grid=True,
-                xlabel="Época",
-                linestyle=["-", "--"][:len(loss_cols)]
-            )
-            ax.set_ylabel("Loss")
-            ax.figure.tight_layout()
-            ax.figure.savefig(os.path.join(self.save_dir, "history_loss.png"))
-            plt.show()
+        fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
-        # ---- 2) ACCURACY (u otra métrica principal) ----
-        metric_cols = [c for c in ["accuracy", "val_accuracy"] if c in hist.columns]
-        if metric_cols:
-            ax = hist[metric_cols].plot(
-                figsize=(12, 5),
-                grid=True,
-                xlabel="Época",
-                ylim=[0, 1],
-                linestyle=["-", "--"][:len(metric_cols)]
-            )
-            ax.set_ylabel("Accuracy")
-            ax.figure.tight_layout()
-            ax.figure.savefig(os.path.join(self.save_dir, "history_acc.png"))
-            plt.show()
+        # -------- Loss --------
+        sns.lineplot(
+            x=range(len(hist["loss"])),
+            y=hist["loss"],
+            label="Train Loss",
+            ax=axes[0]
+        )
+        sns.lineplot(
+            x=range(len(hist["val_loss"])),
+            y=hist["val_loss"],
+            label="Val Loss",
+            ax=axes[0]
+        )
+        axes[0].set_title("Loss")
+        axes[0].set_xlabel("Épocas")
+        axes[0].legend("Hola")
 
-        # Si quieres, también puedes guardar el CSV del history para trazabilidad:
-        # hist.to_csv(os.path.join(self.save_dir, "history.csv"), index=False)
+        # -------- Accuracy --------
+        sns.lineplot(
+            x=range(len(hist["accuracy"])),
+            y=hist["accuracy"],
+            label="Train Acc",
+            ax=axes[1]
+        )
+        sns.lineplot(
+            x=range(len(hist["val_accuracy"])),
+            y=hist["val_accuracy"],
+            label="Val Acc",
+            ax=axes[1]
+        )
+        axes[1].set_title("Accuracy")
+        axes[1].set_xlabel("Épocas")
+        axes[1].legend()
 
+        plt.tight_layout()
+        plt.savefig(os.path.join(self.save_dir, "history.png"))
+        plt.show()
         return self
 
 
