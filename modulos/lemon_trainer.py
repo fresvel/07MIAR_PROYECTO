@@ -248,7 +248,9 @@ class LemonTrainer:
         axes[1].legend()
 
         plt.tight_layout()
-        plt.savefig(os.path.join(self.save_dir, "history.png"))
+        print("**********+SAVE IMAGES***********")
+        plt.savefig(os.path.join(self.save_dir, "history_v3.png"))
+        print("**********+SAVE IMAGES ok***********")
         plt.show()
         return self
 
