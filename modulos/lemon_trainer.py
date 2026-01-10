@@ -210,6 +210,7 @@ class LemonTrainer:
         hist = self.history.history
 
         sns.set_theme(style="whitegrid")
+        sns.set_palette("Set2")
 
         fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
@@ -223,24 +224,24 @@ class LemonTrainer:
         sns.lineplot(
             x=range(len(hist["val_loss"])),
             y=hist["val_loss"],
-            label="Val Loss",
+            label="Validation Loss",
             ax=axes[0]
         )
         axes[0].set_title("Loss")
         axes[0].set_xlabel("Épocas")
-        axes[0].legend("Hola")
+        axes[0].legend()
 
         # -------- Accuracy --------
         sns.lineplot(
             x=range(len(hist["accuracy"])),
             y=hist["accuracy"],
-            label="Train Acc",
+            label="Train Accuracy",
             ax=axes[1]
         )
         sns.lineplot(
             x=range(len(hist["val_accuracy"])),
             y=hist["val_accuracy"],
-            label="Val Acc",
+            label="Validation Accuracy",
             ax=axes[1]
         )
         axes[1].set_title("Accuracy")
