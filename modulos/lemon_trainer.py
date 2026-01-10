@@ -210,7 +210,7 @@ class LemonTrainer:
         hist = self.history.history
 
         sns.set_theme(style="whitegrid")
-        sns.set_palette("Set3")
+        sns.set_palette("Set1")
 
         fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
@@ -250,7 +250,7 @@ class LemonTrainer:
 
         plt.tight_layout()
         print("**********+SAVE IMAGES***********")
-        plt.savefig(os.path.join(self.save_dir, "history_v4.png"))
+        plt.savefig(os.path.join(self.save_dir, "history_v5.png"))
         print("**********+SAVE IMAGES ok***********")
         plt.show()
         return self
