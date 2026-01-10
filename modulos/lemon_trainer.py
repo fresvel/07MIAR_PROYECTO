@@ -250,7 +250,7 @@ class LemonTrainer:
 
         plt.tight_layout()
         print("**********+SAVE IMAGES***********")
-        plt.savefig(os.path.join(self.save_dir, "history_v8.png"))
+        plt.savefig(os.path.join(self.save_dir, "history.png"))
         print("**********+SAVE IMAGES ok***********")
         plt.show()
         return self
