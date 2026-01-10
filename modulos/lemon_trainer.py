@@ -48,7 +48,7 @@ class TrainerConfig:
     patience_es: int = 20
     patience_rlrop: int = 8
     min_lr: float = 1e-6
-    save_dir: str = "./results"
+    save_dir: str = "./results_hist"
     num_classes: int = 3
 
 
@@ -68,10 +68,11 @@ class LemonTrainer:
         self.builder = None
         self.model = None
         self.history = None
+        self.attempt = attempt
         self.save_dir = os.path.join(
-            self.cfg.save_dir, self.cfg.loader, attempt)
+            self.cfg.save_dir, self.cfg.loader)
         os.makedirs(self.save_dir, exist_ok=True)
-        self.best_model_path = os.path.join(self.save_dir, self.cfg.model_out)
+        self.best_model_path = os.path.join(self.save_dir, f"{attempt}_{self.cfg.model_out}")
 
     # -------------------------
     # PREPARACIÓN DE DATOS
@@ -250,7 +251,7 @@ class LemonTrainer:
 
         plt.tight_layout()
         print("**********+SAVE IMAGES***********")
-        plt.savefig(os.path.join(self.save_dir, "history.png"))
+        plt.savefig(os.path.join(self.save_dir, f"{self.attempt}_history.png"))
         print("**********+SAVE IMAGES ok***********")
         plt.show()
         return self
