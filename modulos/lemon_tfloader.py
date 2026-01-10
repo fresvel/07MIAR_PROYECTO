@@ -63,11 +63,7 @@ class LemonTFLoader(LemonDataset):
         # Aplicar el preprocesado según el modo configurado
         if self.mode == "scratch":
             image = image / 255.0
-            # Mensaje informativo — puede quitarse en producción
-            print("Entrenamiento modo Scratch")
         elif self.mode == "transfer":
-            # En modo transfer se espera que self.preprocess_fn exista
-            print("Entrenamiento modo Transfer")
             image = self.preprocess_fn(image)
 
         label = tf.one_hot(label, depth=3)
