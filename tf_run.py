@@ -26,7 +26,7 @@ def _setup_logging():
 
 
 def main(
-    runs: int = 10,
+    runs: int = 2,
     epochs: int = 40,
     learning_rate: float = 1e-3,
     loader: str = "tf",
