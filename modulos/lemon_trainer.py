@@ -210,7 +210,7 @@ class LemonTrainer:
         hist = self.history.history
 
         sns.set_theme(style="whitegrid")
-        sns.set_palette("colorblind")
+        sns.set_palette("Set2")
 
         fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
