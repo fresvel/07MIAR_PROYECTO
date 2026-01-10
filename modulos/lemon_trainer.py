@@ -198,31 +198,52 @@ class LemonTrainer:
     # VISUALIZACIÓN
     # -------------------------
     def plot_history(self):
-        """Dibuja y guarda las curvas de pérdida y accuracy del entrenamiento.
-
-        Lanza `RuntimeError` si no existe `self.history` (entrenar primero).
-        """
+        """Dibuja y guarda curvas del entrenamiento (loss y métricas)."""
         if self.history is None:
-            raise RuntimeError(
-                "No hay 'history'. Entrena el modelo primero con .train().")
+            raise RuntimeError("No hay 'history'. Entrena el modelo primero con .train().")
 
-        hist =pd.DataFrame(self.history.history)
+        hist = pd.DataFrame(self.history.history)
 
-        hist.plot(
-            figsize=(12, 5), 
-            xlim=[0,40], 
-            ylim=[0,1], 
-            grid=True, 
-            xlabel="Época",     
-            color=["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"],
-            linestyle=["-", "--", "-", "--"]
+        # Normalizar nombres típicos (acc -> accuracy) si hiciera falta
+        if "acc" in hist.columns and "accuracy" not in hist.columns:
+            hist = hist.rename(columns={"acc": "accuracy"})
+        if "val_acc" in hist.columns and "val_accuracy" not in hist.columns:
+            hist = hist.rename(columns={"val_acc": "val_accuracy"})
+
+        # ---- 1) LOSS ----
+        loss_cols = [c for c in ["loss", "val_loss"] if c in hist.columns]
+        if loss_cols:
+            ax = hist[loss_cols].plot(
+                figsize=(12, 5),
+                grid=True,
+                xlabel="Época",
+                linestyle=["-", "--"][:len(loss_cols)]
             )
-        
-        hist = self.history.history
-        
-        plt.savefig(os.path.join(self.save_dir, "history.png"))
-        plt.show()
+            ax.set_ylabel("Loss")
+            ax.figure.tight_layout()
+            ax.figure.savefig(os.path.join(self.save_dir, "history_loss.png"))
+            plt.show()
+
+        # ---- 2) ACCURACY (u otra métrica principal) ----
+        metric_cols = [c for c in ["accuracy", "val_accuracy"] if c in hist.columns]
+        if metric_cols:
+            ax = hist[metric_cols].plot(
+                figsize=(12, 5),
+                grid=True,
+                xlabel="Época",
+                ylim=[0, 1],
+                linestyle=["-", "--"][:len(metric_cols)]
+            )
+            ax.set_ylabel("Accuracy")
+            ax.figure.tight_layout()
+            ax.figure.savefig(os.path.join(self.save_dir, "history_acc.png"))
+            plt.show()
+
+        # Si quieres, también puedes guardar el CSV del history para trazabilidad:
+        # hist.to_csv(os.path.join(self.save_dir, "history.csv"), index=False)
+
         return self
+
 
     # -------------------------
     # RUN FULL EXPERIMENT
