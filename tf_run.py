@@ -19,6 +19,7 @@ import numpy as np
 
 from modulos.lemon_trainer import LemonTrainer, TrainerConfig
 
+import tensorflow as tf
 
 def _setup_logging():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s - %(message)s")
@@ -38,6 +39,8 @@ def main(
     - epochs, learning_rate: parámetros de entrenamiento.
     - loader, mode: pasan al `TrainerConfig`.
     """
+
+    tf.keras.utils.set_random_seed(42)
 
     _setup_logging()
     log = logging.getLogger(__name__)

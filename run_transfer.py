@@ -20,6 +20,7 @@ from pathlib import Path
 import logging
 import numpy as np
 import os
+import tensorflow as tf
 from typing import Optional
 
 from modulos.transfer_trainer import LemonTransferTrainer
@@ -52,6 +53,8 @@ def main(
     - epochs, learning_rate: parámetros del entrenamiento de la cabeza.
     """
 
+    tf.keras.utils.set_random_seed(42) 
+    
     _setup_logging()
     log = logging.getLogger(__name__)
 
