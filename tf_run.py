@@ -40,8 +40,6 @@ def main(
     - loader, mode: pasan al `TrainerConfig`.
     """
 
-    tf.keras.utils.set_random_seed(42)
-
     _setup_logging()
     log = logging.getLogger(__name__)
 

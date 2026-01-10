@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional, Tuple
 
 import matplotlib.pyplot as plt
+import pandas as pd
 import tensorflow as tf
 from tensorflow.keras.callbacks import (EarlyStopping, ModelCheckpoint,
                                         ReduceLROnPlateau)
@@ -205,19 +206,20 @@ class LemonTrainer:
             raise RuntimeError(
                 "No hay 'history'. Entrena el modelo primero con .train().")
 
-        hist = self.history.history
-        plt.figure(figsize=(12, 5))
-        plt.subplot(1, 2, 1)
-        plt.plot(hist["loss"], label="Train Loss")
-        plt.plot(hist["val_loss"], label="Val Loss")
-        plt.title("Loss")
-        plt.legend()
+        hist =pd.DataFrame(self.history.history)
 
-        plt.subplot(1, 2, 2)
-        plt.plot(hist["accuracy"], label="Train Acc")
-        plt.plot(hist["val_accuracy"], label="Val Acc")
-        plt.title("Accuracy")
-        plt.legend()
+        hist.plot(
+            figsize=(12, 5), 
+            xlim=[0,40], 
+            ylim=[0,1], 
+            grid=True, 
+            xlabel="Época",     
+            color=["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"],
+            linestyle=["-", "--", "-", "--"]
+            )
+        
+        hist = self.history.history
+        
         plt.savefig(os.path.join(self.save_dir, "history.png"))
         plt.show()
         return self
