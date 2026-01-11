@@ -6,3 +6,4 @@ kaggle.json
 
 # Ignore *.keras files from transfer models
 results_transfer/**/*.keras
+res_transfer/**/*.keras

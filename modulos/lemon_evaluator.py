@@ -136,6 +136,15 @@ class LemonEvaluator:
                 y_true.extend(labels_np.tolist())
 
         return np.array(y_true, dtype=int), np.array(y_pred, dtype=int)
+    
+    @staticmethod
+    def _load_image_for_display(path: str, img_size) -> np.ndarray:
+        """Carga imagen desde disco para visualizar (SIN preprocess_input)."""
+        img = tf.io.read_file(path)
+        img = tf.image.decode_jpeg(img, channels=3)
+        img = tf.image.resize(img, img_size)
+        img = tf.cast(img, tf.uint8)  # display friendly
+        return img.numpy()
 
     def _require_prepared(self):
         if self.trainer is None or self.model is None:
@@ -314,68 +323,77 @@ class LemonEvaluator:
             return 0
 
         to_show = wrong_idxs[:max_images].tolist()
-        to_show_set = set(to_show)
-
         class_names = list(self.eval_cfg.class_names)
 
+        # -------------------------------------------------------
+        # Intentar obtener paths del split test para mostrar "raw"
+        # -------------------------------------------------------
+        test_paths = None
+        try:
+            # En tu TFLoader, self.splits["test"] suele ser (paths, labels)
+            loader = getattr(self.trainer, "loader", None)
+            if loader is not None and hasattr(loader, "splits"):
+                test_split = loader.splits.get("test")
+                if isinstance(test_split, (tuple, list)) and len(test_split) >= 1:
+                    test_paths = test_split[0]  # paths tensor/array
+        except Exception:
+            test_paths = None
+
+        # ---- Configuración de grilla ----
         ncols = 4
         nimgs = len(to_show)
         nrows = int(np.ceil(nimgs / ncols))
-
         fig, axes = plt.subplots(nrows, ncols, figsize=(4 * ncols, 4 * nrows))
         axes = np.atleast_2d(axes)
 
-        global_i = 0
         shown = 0
+        for idx_global in to_show:
+            r = shown // ncols
+            c = shown % ncols
+            ax = axes[r, c]
 
-        for images, labels in self.trainer.test_ds:
-            # labels one-hot esperado
-            batch_true = tf.argmax(labels, axis=1).numpy()
+            # Mostrar imagen "bonita" (sin preprocess) si tenemos path
+            if test_paths is not None:
+                # test_paths puede ser np.array, list o tf.Tensor
+                p = test_paths[idx_global]
+                if isinstance(p, (bytes, bytearray)):
+                    p = p.decode("utf-8")
+                elif hasattr(p, "numpy"):
+                    p = p.numpy().decode("utf-8")
 
-            batch_preds = self.model.predict(images, verbose=0)
-            batch_pred = tf.argmax(batch_preds, axis=1).numpy()
-
-            batch_size = images.shape[0]
-
-            for j in range(batch_size):
-                idx_global = global_i + j
-                if idx_global in to_show_set:
-                    img = images[j]
-                    if hasattr(img, "numpy"):
-                        img = img.numpy()
-
-                    if img.dtype != np.uint8:
-                        if img.max() <= 1.0:
-                            img = (img * 255).astype(np.uint8)
-                        else:
-                            img = img.astype(np.uint8)
-
-                    r = shown // ncols
-                    c = shown % ncols
-                    ax = axes[r, c]
-
-                    ax.imshow(img)
-                    ax.set_title(
-                        f"Idx {idx_global}\n"
-                        f"Real: {class_names[batch_true[j]]}\n"
-                        f"Pred: {class_names[batch_pred[j]]}",
-                        fontsize=9
-                    )
-                    ax.axis("off")
-
-                    shown += 1
-                    if shown >= nimgs:
+                img = self._load_image_for_display(p, self.trainer.cfg.img_size)
+            else:
+                # Fallback: muestra el tensor del dataset (puede verse raro en transfer)
+                # Recorremos hasta encontrar el idx_global (menos eficiente pero funciona)
+                count = 0
+                img = None
+                for images, _labels in self.trainer.test_ds:
+                    bs = int(images.shape[0])
+                    if count + bs > idx_global:
+                        img = images[idx_global - count].numpy()
+                        if img.dtype != np.uint8:
+                            if img.max() <= 1.0:
+                                img = (img * 255).astype(np.uint8)
+                            else:
+                                img = img.astype(np.uint8)
                         break
+                    count += bs
+                if img is None:
+                    img = np.zeros((*self.trainer.cfg.img_size, 3), dtype=np.uint8)
 
-            global_i += batch_size
-            if shown >= nimgs:
-                break
+            ax.imshow(img)
+            ax.set_title(
+                f"Idx {idx_global}\n"
+                f"Real: {class_names[y_true[idx_global]]}\n"
+                f"Pred: {class_names[y_pred[idx_global]]}",
+                fontsize=9
+            )
+            ax.axis("off")
+            shown += 1
 
         # Ocultar ejes vacíos
         for k in range(shown, nrows * ncols):
-            r = k // ncols
-            c = k % ncols
-            axes[r, c].axis("off")
+            axes[k // ncols, k % ncols].axis("off")
 
         plt.tight_layout()
         plt.show()
