@@ -3,3 +3,6 @@ kaggle.json
 
 # Ignore vscode settings folder
 .vscode/
+
+# Ignore *.keras files from transfer models
+results_transfer/**/*.keras
