@@ -1,14 +1,24 @@
 from __future__ import annotations
-from typing import Optional
+from typing import Optional, Dict
 
+import os
+import shutil
+import matplotlib.pyplot as plt
+import seaborn as sns
 import tensorflow as tf
 from tensorflow.keras import layers, models, optimizers
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
+from tensorflow.keras.callbacks import (
+    EarlyStopping,
+    ReduceLROnPlateau,
+    ModelCheckpoint
+)
 
 from modulos.lemon_trainer import LemonTrainer, TrainerConfig
 from modulos.lemon_tfloader import LemonTFLoader
 
-# Modelos y preprocessors disponibles
+# --------------------------------------------------
+# Modelos base y preprocessors
+# --------------------------------------------------
 from tensorflow.keras.applications import (
     ResNet50, Xception, InceptionV3, MobileNetV2, DenseNet121
 )
@@ -18,13 +28,12 @@ from tensorflow.keras.applications.inception_v3 import preprocess_input as inc_p
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input as mob_prep
 from tensorflow.keras.applications.densenet import preprocess_input as dense_prep
 
-
 PREPROCESSORS = {
     "resnet50": resnet_prep,
     "xception": xcep_prep,
     "inceptionv3": inc_prep,
     "mobilenetv2": mob_prep,
-    "densenet": dense_prep
+    "densenet": dense_prep,
 }
 
 BASE_MODELS = {
@@ -32,161 +41,218 @@ BASE_MODELS = {
     "xception": Xception,
     "inceptionv3": InceptionV3,
     "mobilenetv2": MobileNetV2,
-    "densenet": DenseNet121
+    "densenet": DenseNet121,
 }
 
 
 class LemonTransferTrainer(LemonTrainer):
-    """Trainer especializado en Transfer Learning + Fine Tuning.
+    """
+    Trainer para Transfer Learning + Fine Tuning.
 
-    Extiende `LemonTrainer` y añade métodos para construir una cabeza
-    clasificadora sobre un modelo base pre-entrenado, entrenar solo la
-    cabeza y posteriormente realizar fine-tuning parcial.
+    Fases:
+    1) HEAD: modelo base congelado, se entrena solo la cabeza
+    2) FINE: se descongelan capas finales y se afina el modelo
+
+    Modelos guardados:
+    - best_head.keras
+    - best_fine.keras
+    - best_overall.keras  (alias explícito del mejor modelo final)
     """
 
-    def __init__(self, config: Optional[TrainerConfig] = None, attempt="",
-                 architecture: str = "resnet50", fine_tune_at: int = 40):
-
+    def __init__(
+        self,
+        config: Optional[TrainerConfig] = None,
+        attempt: str = "",
+        architecture: str = "resnet50",
+        fine_tune_at: int = 40,
+    ):
         super().__init__(config, attempt)
 
         self.architecture = architecture.lower()
         if self.architecture not in BASE_MODELS:
-            raise ValueError(f"Arquitectura desconocida '{architecture}'. Opciones: {list(BASE_MODELS.keys())}")
+            raise ValueError(
+                f"Arquitectura desconocida '{architecture}'. "
+                f"Opciones: {list(BASE_MODELS.keys())}"
+            )
 
-        # número de capas desde el final que se desbloquearán para fine-tuning
-        self.fine_tune_at = int(fine_tune_at) if fine_tune_at is not None else 0
+        self.fine_tune_at = int(fine_tune_at)
         self.prep_fn = PREPROCESSORS.get(self.architecture)
 
-        # placeholders que se llenan en build_model
         self.base_model = None
 
-    # ------------------------------------------------------
-    # PREPARACIÓN DE DATOS (reusa prepare_data())
-    # ------------------------------------------------------
-    def prepare_data(self, val_size=0.15, test_size=0.15, seed=42):
+        # ---------------- RUTAS DE GUARDADO ----------------
+        self.best_head_path = os.path.join(
+            self.save_dir, f"{self.attempt}_best_head.keras"
+        )
+        self.best_fine_path = os.path.join(
+            self.save_dir, f"{self.attempt}_best_fine.keras"
+        )
+        self.best_overall_path = os.path.join(
+            self.save_dir, f"{self.attempt}_best_overall.keras"
+        )
 
-        # Sobrescribimos solo el loader con preprocess_input si existe
+        self.history_head = None
+        self.history_fine = None
+
+    # --------------------------------------------------
+    # DATA
+    # --------------------------------------------------
+    def prepare_data(self, val_size=0.15, test_size=0.15, seed=42):
         self.loader = LemonTFLoader(
             img_size=self.cfg.img_size,
             batch_size=self.cfg.batch_size,
-            mode="transfer"
+            mode="transfer",
         )
         if self.prep_fn is not None:
             self.loader.preprocess_fn = self.prep_fn
 
-        self.loader._create_splits(val_size=val_size, test_size=test_size, seed=seed)
+        self.loader._create_splits(
+            val_size=val_size,
+            test_size=test_size,
+            seed=seed,
+        )
         self.train_ds, self.val_ds, self.test_ds = self.loader.get_datasets()
-
         return self
 
-    # ------------------------------------------------------
-    #    1. Construir modelo base + Top classifier
-    # ------------------------------------------------------
+    # --------------------------------------------------
+    # MODEL
+    # --------------------------------------------------
     def build_model(self):
-
-        base_class = BASE_MODELS[self.architecture]
-        base = base_class(
+        base_cls = BASE_MODELS[self.architecture]
+        base = base_cls(
             weights="imagenet",
             include_top=False,
-            input_shape=(self.cfg.img_size[0], self.cfg.img_size[1], 3)
+            input_shape=(*self.cfg.img_size, 3),
         )
         base.trainable = False
 
-        inputs = layers.Input(shape=(self.cfg.img_size[0], self.cfg.img_size[1], 3))
+        inputs = layers.Input(shape=(*self.cfg.img_size, 3))
         x = base(inputs, training=False)
         x = layers.GlobalAveragePooling2D()(x)
         x = layers.BatchNormalization()(x)
         x = layers.Dropout(0.4)(x)
-        x = layers.Dense(128, activation="relu",
-                         kernel_regularizer=tf.keras.regularizers.l2(1e-4))(x)
+        x = layers.Dense(
+            128,
+            activation="relu",
+            kernel_regularizer=tf.keras.regularizers.l2(1e-4),
+        )(x)
         x = layers.Dropout(0.3)(x)
         outputs = layers.Dense(self.cfg.num_classes, activation="softmax")(x)
 
         self.model = models.Model(inputs, outputs)
         self.base_model = base
-
         return self
 
-    # ------------------------------------------------------
-    #    2. FASE 1 — Entrenar solo top layers
-    # ------------------------------------------------------
+    # --------------------------------------------------
+    # PHASE 1 — HEAD
+    # --------------------------------------------------
     def _train_head(self):
-
         self.model.compile(
             optimizer=optimizers.Adam(1e-4),
             loss="categorical_crossentropy",
-            metrics=["accuracy"]
+            metrics=["accuracy"],
         )
 
-        cb = [
-            EarlyStopping(monitor="val_loss", patience=7, restore_best_weights=True),
-            ReduceLROnPlateau(monitor="val_loss", patience=3, factor=0.2)
+        callbacks = [
+            EarlyStopping(
+                monitor="val_loss",
+                patience=7,
+                restore_best_weights=True,
+            ),
+            ReduceLROnPlateau(
+                monitor="val_loss",
+                patience=3,
+                factor=0.2,
+            ),
+            ModelCheckpoint(
+                self.best_head_path,
+                monitor="val_loss",
+                save_best_only=True,
+            ),
         ]
 
-        print("** Entrenando solo top layers **")
-        steps = getattr(self.loader, "steps_per_epoch", None)
+        print("** FASE 1 — Entrenando HEAD **")
         return self.model.fit(
             self.train_ds,
             validation_data=self.val_ds,
             epochs=self.cfg.epochs,
-            callbacks=cb,
-            steps_per_epoch=steps,
-            verbose=1
+            callbacks=callbacks,
+            verbose=1,
         )
 
-    # ------------------------------------------------------
-    #    3. FASE 2 — Fine tuning parcial
-    # ------------------------------------------------------
+    # --------------------------------------------------
+    # PHASE 2 — FINE TUNING
+    # --------------------------------------------------
     def _train_finetune(self):
-
         if self.base_model is None:
-            raise RuntimeError("El modelo base no está construido. Llama a build_model() antes de _train_finetune().")
+            raise RuntimeError("build_model() debe ejecutarse antes de fine-tuning.")
 
         total_layers = len(self.base_model.layers)
         n = min(self.fine_tune_at, total_layers)
-        if n <= 0:
-            print("fine_tune_at <= 0, no se realizará fine-tuning.")
-        else:
-            for layer in self.base_model.layers[-n:]:
-                layer.trainable = True
+
+        for layer in self.base_model.layers[-n:]:
+            layer.trainable = True
 
         self.model.compile(
             optimizer=optimizers.Adam(1e-5),
             loss="categorical_crossentropy",
-            metrics=["accuracy"]
+            metrics=["accuracy"],
         )
 
-        cb = [
-            EarlyStopping(monitor="val_loss", patience=10, restore_best_weights=True),
-            ReduceLROnPlateau(monitor="val_loss", patience=4, factor=0.2)
+        callbacks = [
+            EarlyStopping(
+                monitor="val_loss",
+                patience=10,
+                restore_best_weights=True,
+            ),
+            ReduceLROnPlateau(
+                monitor="val_loss",
+                patience=4,
+                factor=0.2,
+            ),
+            ModelCheckpoint(
+                self.best_fine_path,
+                monitor="val_loss",
+                save_best_only=True,
+            ),
         ]
 
-        print("** Fine Tuning activado **")
-        steps = getattr(self.loader, "steps_per_epoch", None)
+        print("** FASE 2 — Fine Tuning **")
         return self.model.fit(
             self.train_ds,
             validation_data=self.val_ds,
             epochs=self.cfg.epochs,
-            callbacks=cb,
-            steps_per_epoch=steps,
-            verbose=1
+            callbacks=callbacks,
+            verbose=1,
         )
 
-    # ------------------------------------------------------
-    #   Sobrescribir método train()
-    # ------------------------------------------------------
+    # --------------------------------------------------
+    # TRAIN
+    # --------------------------------------------------
     def train(self):
-        print("******** Training Transfer Model *******")
+        print("******** Transfer Learning ********")
         print("Architecture:", self.architecture)
-        steps = getattr(self.loader, "steps_per_epoch", None)
-        print("Steps:", steps)
+        print("Save dir:", self.save_dir)
 
-        # fase 1
         self.history_head = self._train_head()
-
-        # fase 2
         self.history_fine = self._train_finetune()
 
-        # El history principal será el del fine tuning
+        # El history principal queda asociado al fine
         self.history = self.history_fine
+
+        # ---------------- BEST OVERALL ----------------
+        if os.path.exists(self.best_fine_path):
+            shutil.copy2(self.best_fine_path, self.best_overall_path)
+            print("✔ best_overall guardado desde best_fine")
+
         return self
+
+    # --------------------------------------------------
+    # UTILS
+    # --------------------------------------------------
+    def saved_best_paths(self) -> Dict[str, str]:
+        return {
+            "best_head": self.best_head_path,
+            "best_fine": self.best_fine_path,
+            "best_overall": self.best_overall_path,
+        }
