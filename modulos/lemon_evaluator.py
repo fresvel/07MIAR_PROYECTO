@@ -67,6 +67,7 @@ class LemonEvaluator:
         val_size: float = 0.15,
         test_size: float = 0.15,
         seed: int = 42,
+        model_variant: str = "best",
     ):
         """
         Args:
@@ -91,6 +92,7 @@ class LemonEvaluator:
         self.model: Optional[tf.keras.Model] = None
         self.y_true: Optional[np.ndarray] = None
         self.y_pred: Optional[np.ndarray] = None
+        self.model_variant = model_variant
 
     # -----------------------
     # Utilidades
@@ -125,20 +127,41 @@ class LemonEvaluator:
     # Preparación principal
     # -----------------------
     def prepare(self) -> "LemonEvaluator":
-        """Reconstruye datasets (sin reentrenar) y carga el mejor modelo.
+        """Reconstruye datasets (sin reentrenar) y carga el modelo elegido."""
 
-        - Crea un LemonTrainer con el mismo cfg (loader/mode).
-        - Reconstruye el split con (val_size, test_size, seed).
-        - Carga el modelo desde trainer.best_model_path.
-        """
         self.trainer = LemonTrainer(self.trainer_cfg, attempt=self.attempt)
         self.trainer.prepare_data(val_size=self.val_size, test_size=self.test_size, seed=self.seed)
-        self.model = self._safe_load_model(self.trainer.best_model_path)
 
-        # reset cache de predicciones, por si se llama prepare() otra vez
+        # 1) Ruta por defecto (scratch): best_model_path de LemonTrainer
+        model_path = self.trainer.best_model_path
+
+        # 2) Si se pide un modelo de transfer (overall/head/fine), lo buscamos en el mismo save_dir
+        if self.model_variant in ("best_overall", "best_head", "best_fine"):
+            suffix = {
+                "best_overall": "best_overall.keras",
+                "best_head": "best_head.keras",
+                "best_fine": "best_fine.keras",
+            }[self.model_variant]
+
+            # Respeta el prefijo attempt_...
+            # Ej: attempt="eval" -> "eval_best_overall.keras"
+            name = f"{self.attempt}_{suffix}" if self.attempt else suffix
+            candidate = os.path.join(self.trainer.save_dir, name)
+
+            # si existe, usarlo; si no, fallar con mensaje claro
+            if not os.path.exists(candidate):
+                raise FileNotFoundError(
+                    f"No existe el modelo '{self.model_variant}' en: {candidate}\n"
+                    f"Tip: asegúrate de haber entrenado transfer y de que attempt='{self.attempt}' coincide."
+                )
+            model_path = candidate
+
+        self.model = self._safe_load_model(model_path)
+
         self.y_true = None
         self.y_pred = None
         return self
+
 
     def predict(self, force: bool = False) -> Tuple[np.ndarray, np.ndarray]:
         """Calcula y cachea y_true/y_pred sobre test_ds.

@@ -3,7 +3,7 @@ from typing import Optional
 
 import tensorflow as tf
 from tensorflow.keras import layers, models, optimizers
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
+from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 
 from modulos.lemon_trainer import LemonTrainer, TrainerConfig
 from modulos.lemon_tfloader import LemonTFLoader
