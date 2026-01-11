@@ -3,29 +3,22 @@ Evaluación del modelo entrenado (versión clase).
 
 Proporciona `LemonEvaluator` para:
 - reconstruir datasets de test SIN reentrenar
-- cargar el mejor modelo guardado (best_model_path)
+- cargar el modelo guardado (best / best_head / best_fine / best_overall)
 - calcular métricas (matriz de confusión, classification_report)
 - graficar y guardar la matriz de confusión (sns heatmap)
-- visualizar imágenes mal clasificadas
+- visualizar imágenes mal clasificadas en grilla (4 columnas)
 - exponer métodos amigables para usar desde Jupyter
 
-Uso típico en Jupyter:
-
-from modulos.lemon_evaluator import LemonEvaluator
-
-ev = LemonEvaluator(loader="tf", mode="scratch", attempt="")
-ev.prepare()                 # reconstruye test_ds y carga modelo
-cm = ev.confusion_matrix()
-rep = ev.classification_report()
-ev.plot_confusion_matrix()   # guarda en el mismo directorio de resultados
-ev.show_misclassified(max_images=9)
+Notas importantes:
+- Si mode == "transfer", este Evaluator usa LemonTransferTrainer (Opción A),
+  garantizando que el TFLoader reciba el preprocess_fn correcto por arquitectura.
 """
 
 from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -35,27 +28,20 @@ from sklearn.metrics import classification_report, confusion_matrix
 
 from modulos.lemon_trainer import LemonTrainer, TrainerConfig
 
+# Transfer trainer (opción A)
+from modulos.transfer_trainer import LemonTransferTrainer
+
 
 @dataclass
 class EvalConfig:
-    """Configuración para evaluación.
-
-    - class_names: nombres de clases en el orden de índices (0..K-1)
-    - cm_filename: nombre del archivo de salida para la matriz de confusión
-    - max_misclassified: máximo de imágenes a mostrar en show_misclassified()
-    """
+    """Configuración para evaluación."""
     class_names: Tuple[str, ...] = ("bad", "empty", "good")
     cm_filename: str = "confusion_matrix.png"
     max_misclassified: int = 9
 
 
 class LemonEvaluator:
-    """Evaluador reutilizable para modelos entrenados con LemonTrainer.
-
-    La idea es poder llamarlo desde Jupyter para:
-    - preparar datasets y modelo una vez
-    - consultar resultados con métodos específicos
-    """
+    """Evaluador reutilizable para modelos entrenados con LemonTrainer / LemonTransferTrainer."""
 
     def __init__(
         self,
@@ -68,31 +54,41 @@ class LemonEvaluator:
         test_size: float = 0.15,
         seed: int = 42,
         model_variant: str = "best",
+        # --- Solo transfer ---
+        architecture: str = "resnet50",
+        fine_tune_at: int = 40,
     ):
         """
         Args:
-            loader: "tf" o "gen" (recomendado "tf" para evaluación del módulo actual).
-            mode: "scratch" o "transfer" (debe coincidir con el entrenamiento si afecta al loader).
-            attempt: prefijo del modelo guardado (misma convención que LemonTrainer).
-            trainer_cfg: si quieres pasar un TrainerConfig completo. Si se pasa, loader/mode se ignoran.
-            eval_cfg: configuración de evaluación (nombres de clases, nombres de archivos, etc).
-            val_size, test_size, seed: deben coincidir con el entrenamiento si quieres el mismo split.
+            loader: "tf" o "gen"
+            mode: "scratch" o "transfer"
+            attempt: prefijo del modelo guardado
+            trainer_cfg: config completa (si se pasa, loader/mode se ignoran)
+            eval_cfg: configuración de evaluación
+            val_size, test_size, seed: deben coincidir con el split del entrenamiento
+            model_variant: "best", "best_overall", "best_head", "best_fine"
+            architecture: (solo transfer) resnet50/xception/inceptionv3/mobilenetv2/densenet
+            fine_tune_at: (solo transfer) parámetro que requiere LemonTransferTrainer (no afecta evaluación en sí)
         """
         self.eval_cfg = eval_cfg or EvalConfig()
         self.val_size = float(val_size)
         self.test_size = float(test_size)
         self.seed = int(seed)
 
-        # Config del trainer: si no viene, creamos una mínima con loader/mode
         self.trainer_cfg = trainer_cfg or TrainerConfig(loader=loader, mode=mode)
         self.attempt = attempt
 
-        # Se llenan en prepare()
-        self.trainer: Optional[LemonTrainer] = None
+        self.model_variant = model_variant
+
+        # transfer params
+        self.architecture = architecture
+        self.fine_tune_at = int(fine_tune_at)
+
+        # filled in prepare()
+        self.trainer: Optional[object] = None
         self.model: Optional[tf.keras.Model] = None
         self.y_true: Optional[np.ndarray] = None
         self.y_pred: Optional[np.ndarray] = None
-        self.model_variant = model_variant
 
     # -----------------------
     # Utilidades
@@ -104,18 +100,40 @@ class LemonEvaluator:
         return tf.keras.models.load_model(path)
 
     @staticmethod
-    def _collect_y_true_y_pred(model: tf.keras.Model, dataset) -> Tuple[np.ndarray, np.ndarray]:
-        y_true: List[int] = []
-        y_pred: List[int] = []
+    def _collect_y_true_y_pred(model, dataset, verbose=True):
+        """
+        Soporta:
+        - tf.data.Dataset finito
+        - Keras generator/Sequence con __len__ (ImageDataGenerator)
+        """
+        # 1) Predicción
+        preds = model.predict(dataset, verbose=1 if verbose else 0)
+        y_pred = np.argmax(preds, axis=1)
 
-        for images, labels in dataset:
-            preds = model.predict(images, verbose=0)
+        # 2) Etiquetas reales
+        y_true = []
 
-            true_idxs = tf.argmax(labels, axis=1).numpy()
-            pred_idxs = tf.argmax(preds, axis=1).numpy()
+        # Caso generator/Sequence: no iterar infinitamente
+        if hasattr(dataset, "__len__") and not isinstance(dataset, tf.data.Dataset):
+            steps = len(dataset)
+            if hasattr(dataset, "reset"):
+                dataset.reset()
 
-            y_true.extend(true_idxs.tolist())
-            y_pred.extend(pred_idxs.tolist())
+            it = iter(dataset)
+            for _ in range(steps):
+                _, labels = next(it)
+                labels_np = labels.numpy() if hasattr(labels, "numpy") else labels
+                if getattr(labels_np, "ndim", 1) > 1:
+                    labels_np = np.argmax(labels_np, axis=1)
+                y_true.extend(labels_np.tolist())
+
+        else:
+            # Caso tf.data.Dataset finito
+            for _, labels in dataset:
+                labels_np = labels.numpy() if hasattr(labels, "numpy") else labels
+                if getattr(labels_np, "ndim", 1) > 1:
+                    labels_np = np.argmax(labels_np, axis=1)
+                y_true.extend(labels_np.tolist())
 
         return np.array(y_true, dtype=int), np.array(y_pred, dtype=int)
 
@@ -123,19 +141,19 @@ class LemonEvaluator:
         if self.trainer is None or self.model is None:
             raise RuntimeError("Primero llama a .prepare() para reconstruir datasets y cargar el modelo.")
 
-    # -----------------------
-    # Preparación principal
-    # -----------------------
-    def prepare(self) -> "LemonEvaluator":
-        """Reconstruye datasets (sin reentrenar) y carga el modelo elegido."""
+    def _resolve_model_path(self) -> str:
+        """
+        Decide qué archivo cargar según model_variant.
+        - scratch: usa trainer.best_model_path por defecto
+        - transfer: respeta best_overall/best_head/best_fine según convención de LemonTransferTrainer
+        """
+        # best default (compatible con LemonTrainer y LemonTransferTrainer)
+        if hasattr(self.trainer, "best_model_path"):
+            model_path = self.trainer.best_model_path
+        else:
+            raise RuntimeError("Trainer no expone 'best_model_path'.")
 
-        self.trainer = LemonTrainer(self.trainer_cfg, attempt=self.attempt)
-        self.trainer.prepare_data(val_size=self.val_size, test_size=self.test_size, seed=self.seed)
-
-        # 1) Ruta por defecto (scratch): best_model_path de LemonTrainer
-        model_path = self.trainer.best_model_path
-
-        # 2) Si se pide un modelo de transfer (overall/head/fine), lo buscamos en el mismo save_dir
+        # si piden explícitos (transfer)
         if self.model_variant in ("best_overall", "best_head", "best_fine"):
             suffix = {
                 "best_overall": "best_overall.keras",
@@ -143,54 +161,71 @@ class LemonEvaluator:
                 "best_fine": "best_fine.keras",
             }[self.model_variant]
 
-            # Respeta el prefijo attempt_...
-            # Ej: attempt="eval" -> "eval_best_overall.keras"
-            name = f"{self.attempt}_{suffix}" if self.attempt else suffix
-            candidate = os.path.join(self.trainer.save_dir, name)
+            save_dir = getattr(self.trainer, "save_dir", None)
+            if save_dir is None:
+                raise RuntimeError("Trainer no expone 'save_dir' para resolver model_variant.")
 
-            # si existe, usarlo; si no, fallar con mensaje claro
+            name = f"{self.attempt}_{suffix}" if self.attempt else suffix
+            candidate = os.path.join(save_dir, name)
+
             if not os.path.exists(candidate):
                 raise FileNotFoundError(
                     f"No existe el modelo '{self.model_variant}' en: {candidate}\n"
-                    f"Tip: asegúrate de haber entrenado transfer y de que attempt='{self.attempt}' coincide."
+                    f"Tip: asegúrate de que attempt='{self.attempt}' coincide con el entrenamiento."
                 )
             model_path = candidate
 
+        return model_path
+
+    # -----------------------
+    # Preparación principal
+    # -----------------------
+    def prepare(self) -> "LemonEvaluator":
+        """Reconstruye datasets (sin reentrenar) y carga el modelo elegido."""
+
+        # Opción A: usar el trainer correcto según el modo
+        if self.trainer_cfg.mode == "transfer":
+            self.trainer = LemonTransferTrainer(
+                self.trainer_cfg,
+                attempt=self.attempt,
+                architecture=self.architecture,
+                fine_tune_at=self.fine_tune_at,
+            )
+        else:
+            self.trainer = LemonTrainer(self.trainer_cfg, attempt=self.attempt)
+
+        # Importante: reconstruye splits de igual forma
+        self.trainer.prepare_data(val_size=self.val_size, test_size=self.test_size, seed=self.seed)
+
+        # cargar modelo
+        model_path = self._resolve_model_path()
         self.model = self._safe_load_model(model_path)
 
+        # reset cache
         self.y_true = None
         self.y_pred = None
         return self
 
-
-    def predict(self, force: bool = False) -> Tuple[np.ndarray, np.ndarray]:
-        """Calcula y cachea y_true/y_pred sobre test_ds.
-
-        Args:
-            force: si True, recalcula aunque ya existan valores cacheados.
-
-        Returns:
-            (y_true, y_pred)
-        """
+    # -----------------------
+    # Predicción y cache
+    # -----------------------
+    def predict(self, force: bool = False, verbose: bool = True) -> Tuple[np.ndarray, np.ndarray]:
+        """Calcula y cachea y_true/y_pred sobre test_ds."""
         self._require_prepared()
         if (self.y_true is None or self.y_pred is None) or force:
-            self.y_true, self.y_pred = self._collect_y_true_y_pred(self.model, self.trainer.test_ds)
+            self.y_true, self.y_pred = self._collect_y_true_y_pred(
+                self.model, self.trainer.test_ds, verbose=verbose
+            )
         return self.y_true, self.y_pred
 
     # -----------------------
     # Métricas
     # -----------------------
-    def confusion_matrix(self, normalize: Optional[str] = None) -> np.ndarray:
-        """Devuelve la matriz de confusión.
-
-        Args:
-            normalize: None, "true", "pred", "all" (misma opción de sklearn)
-        """
+    def get_confusion_matrix(self, normalize: Optional[str] = None) -> np.ndarray:
         y_true, y_pred = self.predict()
         return confusion_matrix(y_true, y_pred, normalize=normalize)
 
-    def classification_report(self, digits: int = 4) -> str:
-        """Devuelve el reporte de clasificación (texto)."""
+    def get_classification_report(self, digits: int = 4) -> str:
         y_true, y_pred = self.predict()
         return classification_report(
             y_true,
@@ -210,28 +245,17 @@ class LemonEvaluator:
         show: bool = True,
         dpi: int = 300,
     ) -> Dict[str, Any]:
-        """Grafica (sns heatmap) y guarda la matriz de confusión en trainer.save_dir.
-
-        Args:
-            normalize: None, "true", "pred", "all"
-            cmap: mapa de color para heatmap
-            save: si True, guarda PNG en el directorio de resultados
-            show: si True, muestra la figura
-            dpi: dpi de guardado
-
-        Returns:
-            dict con { "cm": array, "path": ruta_salida (o None) }
-        """
+        """Grafica (sns heatmap) y guarda la matriz de confusión en trainer.save_dir."""
         self._require_prepared()
 
-        cm = self.confusion_matrix(normalize=normalize)
+        cm = self.get_confusion_matrix(normalize=normalize)
 
         sns.set_theme(style="whitegrid")
         sns.set_palette("Set2")
 
         fig, ax = plt.subplots(1, 1, figsize=(7, 6))
-
         fmt = ".2f" if normalize else "d"
+
         sns.heatmap(
             cm,
             annot=True,
@@ -256,13 +280,14 @@ class LemonEvaluator:
 
         out_path = None
         if save:
-            os.makedirs(self.trainer.save_dir, exist_ok=True)
-            out_name = f"{self.attempt}_{self.eval_cfg.cm_filename}" if self.attempt else self.eval_cfg.cm_filename
-            out_path = os.path.join(self.trainer.save_dir, out_name)
+            save_dir = getattr(self.trainer, "save_dir", None)
+            if save_dir is None:
+                raise RuntimeError("Trainer no expone 'save_dir' para guardar figuras.")
 
-            
+            os.makedirs(save_dir, exist_ok=True)
+            out_name = f"{self.attempt}_{self.eval_cfg.cm_filename}" if self.attempt else self.eval_cfg.cm_filename
+            out_path = os.path.join(save_dir, out_name)
             plt.savefig(out_path, dpi=dpi)
-            
 
         if show:
             plt.show()
@@ -275,14 +300,10 @@ class LemonEvaluator:
     # Visualización cualitativa
     # -----------------------
     def show_misclassified(self, max_images: Optional[int] = None) -> int:
-        """Muestra hasta `max_images` imágenes mal clasificadas en TODO el test.
-
-        Retorna el total de mal clasificadas encontradas en todo el dataset (no solo en un batch).
-        """
+        """Muestra hasta `max_images` mal clasificadas en grilla 4 columnas."""
         self._require_prepared()
         max_images = int(max_images) if max_images is not None else int(self.eval_cfg.max_misclassified)
 
-        # Asegurar predicciones globales (y_true/y_pred para TODO el test)
         y_true, y_pred = self.predict()
 
         wrong_idxs = np.where(y_true != y_pred)[0]
@@ -292,21 +313,25 @@ class LemonEvaluator:
         if total_wrong == 0:
             return 0
 
-        # Tomar solo las primeras N para mostrar
         to_show = wrong_idxs[:max_images].tolist()
         to_show_set = set(to_show)
 
         class_names = list(self.eval_cfg.class_names)
 
-        # Recorremos el dataset manteniendo un índice global
+        ncols = 4
+        nimgs = len(to_show)
+        nrows = int(np.ceil(nimgs / ncols))
+
+        fig, axes = plt.subplots(nrows, ncols, figsize=(4 * ncols, 4 * nrows))
+        axes = np.atleast_2d(axes)
+
         global_i = 0
         shown = 0
 
         for images, labels in self.trainer.test_ds:
-            # Convertir etiquetas del batch a índices
+            # labels one-hot esperado
             batch_true = tf.argmax(labels, axis=1).numpy()
 
-            # Predicciones del batch
             batch_preds = self.model.predict(images, verbose=0)
             batch_pred = tf.argmax(batch_preds, axis=1).numpy()
 
@@ -319,25 +344,40 @@ class LemonEvaluator:
                     if hasattr(img, "numpy"):
                         img = img.numpy()
 
-                    # Normalizar para mostrar
                     if img.dtype != np.uint8:
                         if img.max() <= 1.0:
                             img = (img * 255).astype(np.uint8)
                         else:
                             img = img.astype(np.uint8)
 
-                    plt.figure(figsize=(3, 3))
-                    plt.imshow(img)
-                    plt.title(
-                        f"Idx: {idx_global}\nReal: {class_names[batch_true[j]]}\nPred: {class_names[batch_pred[j]]}"
+                    r = shown // ncols
+                    c = shown % ncols
+                    ax = axes[r, c]
+
+                    ax.imshow(img)
+                    ax.set_title(
+                        f"Idx {idx_global}\n"
+                        f"Real: {class_names[batch_true[j]]}\n"
+                        f"Pred: {class_names[batch_pred[j]]}",
+                        fontsize=9
                     )
-                    plt.axis("off")
-                    plt.show()
+                    ax.axis("off")
 
                     shown += 1
-                    if shown >= len(to_show):
-                        return total_wrong
+                    if shown >= nimgs:
+                        break
 
             global_i += batch_size
+            if shown >= nimgs:
+                break
+
+        # Ocultar ejes vacíos
+        for k in range(shown, nrows * ncols):
+            r = k // ncols
+            c = k % ncols
+            axes[r, c].axis("off")
+
+        plt.tight_layout()
+        plt.show()
 
         return total_wrong
