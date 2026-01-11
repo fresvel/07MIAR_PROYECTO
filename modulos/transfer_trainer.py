@@ -190,8 +190,3 @@ class LemonTransferTrainer(LemonTrainer):
         # El history principal será el del fine tuning
         self.history = self.history_fine
         return self
-
-
-    # ------------------------------------------------------
-    # run_trainer() se mantiene igual
-    # ------------------------------------------------------
