@@ -88,7 +88,7 @@ class LemonCNNBuilder:
 
         # Capas finales: pooling global, densa con regularización y salida
         x = GlobalAveragePooling2D()(x)
-        x = Dense(128, activation='relu', kernel_regularizer=l2(0.001))(x)
+        x = Dense(128, activation='relu', kernel_regularizer=l2(1e-4))(x)
         x = Dropout(0.4)(x)
 
         outputs = Dense(self.num_classes, activation='softmax')(x)

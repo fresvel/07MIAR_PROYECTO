@@ -1,3 +1,5 @@
+Se busca afinar los resultados de scratch, en transfer se tiene ya resultados bastante óptimos.
+
 1.- Se escoge el el loader tf dado que procesa tres veces más rápido que el cargador generator.
 
 2.- Se aplica augmentation a la clase débil empty con base a lo siguiente:
@@ -18,3 +20,9 @@
         image = tf.image.central_crop(image, crop_scale)
         image = tf.image.resize(image, self.img_size)
         return image, label
+        
+        
+        
+3.- Se baja el learning rate de 1e-3 a 3e-4 para buscar mas estabilidad. La varianza en validación es menor lo que podría indicar mejora.
+
+4.- Se baja el l2 de 1e-3 a 1e-4 en el modelo scracth para buscar mas estabilidad.
