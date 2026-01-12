@@ -133,7 +133,8 @@ class LemonTrainer:
         """
         self.model.compile(
             optimizer=Adam(self.cfg.learning_rate),
-            loss="categorical_crossentropy",
+            #loss="categorical_crossentropy",
+            loss=tf.keras.losses.CategoricalCrossentropy(label_smoothing=0.05),
             metrics=["accuracy"]
         )
         return self
