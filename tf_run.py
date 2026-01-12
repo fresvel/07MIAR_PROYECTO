@@ -28,7 +28,7 @@ def _setup_logging():
 def main(
     runs: int = 10,
     epochs: int = 40,
-    learning_rate: float = 3e-4,
+    learning_rate: float = 1e-3,
     loader: str = "tf",
     mode: str = "scratch",
 ):
@@ -56,8 +56,10 @@ def main(
         log.info("Iniciando entrenamiento intento %s", attempt_id)
 
         trainer = LemonTrainer(cfg, attempt=attempt_id)
-        save_dir = trainer.save_dir
-        log.info("Los resultados de guardarán en %s", save_dir)
+        save_dir = Path(trainer.save_dir)
+        
+
+        log.info("Los resultados de guardarán en %s", str(save_dir))
 
         try:
             results = trainer.run_trainer()

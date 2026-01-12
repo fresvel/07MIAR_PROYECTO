@@ -42,13 +42,13 @@ class TrainerConfig:
     img_size: Tuple[int, int] = (224, 224)
     batch_size: int = 32
     epochs: int = 50
-    learning_rate: float = 1e-3
+    learning_rate: float = 3e-4
     mode: str = "scratch"         # afecta augmentation
     model_out: str = "model_best.keras"
     patience_es: int = 20
     patience_rlrop: int = 8
     min_lr: float = 1e-6
-    save_dir: str = f"./res_{mode}_lr"
+    save_dir: str = f"./res_{mode}_lr4e_3"
     num_classes: int = 3
 
 
