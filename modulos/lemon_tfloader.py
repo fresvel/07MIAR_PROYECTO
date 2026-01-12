@@ -95,8 +95,8 @@ class LemonTFLoader(LemonDataset):
         """
         def augment():
             # Para activar augment real, descomentar la siguiente línea:
-            # return self._augment(image, label)
-            return image, label
+            return self._augment(image, label)
+            #return image, label
 
         def no_augment():
             return image, label

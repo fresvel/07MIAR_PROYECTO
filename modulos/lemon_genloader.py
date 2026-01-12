@@ -10,6 +10,8 @@ Principales características:
   lotes combinados y mezclados.
 """
 
+
+
 import numpy as np
 import pandas as pd
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
@@ -70,6 +72,23 @@ class LemonGenLoader(LemonDataset):
         df_empty = self._train_df[self._train_df["class"] == "empty"]
         df_others = self._train_df[self._train_df["class"] != "empty"]
 
+        
+
+        import os
+
+        def _debug_invalid(df, name):
+            mask = ~df["filename"].astype(str).apply(os.path.isfile)
+            if mask.any():
+                print(f"\n[ERROR REAL] {name}: archivos inválidos encontrados:")
+                for _, row in df.loc[mask].iterrows():
+                    print("  ->", repr(row["filename"]), "| class:", row["class"])
+
+        # DEBUG: verificar rutas ANTES de crear generadores
+        _debug_invalid(self._train_df, "TRAIN")
+        _debug_invalid(self._val_df, "VAL")
+        _debug_invalid(self._test_df, "TEST")
+
+        
         # Generador con aumentos para la clase `empty`
         gen_empty = aug_datagen.flow_from_dataframe(
             dataframe=df_empty,
@@ -144,3 +163,6 @@ class LemonGenLoader(LemonDataset):
             self.steps_per_epoch = None
 
         return combined_gen(), val_gen, test_gen
+
+
+
