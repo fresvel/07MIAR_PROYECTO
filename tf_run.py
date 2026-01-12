@@ -48,14 +48,16 @@ def main(
     test_accs = []
     val_accs = []
 
-    save_dir = Path("results_tf")
-    save_dir.mkdir(parents=True, exist_ok=True)
+    #save_dir = Path("results_tf")
+    #save_dir.mkdir(parents=True, exist_ok=True)
 
     for i in range(1, runs + 1):
         attempt_id = f"{i:02d}"
         log.info("Iniciando entrenamiento intento %s", attempt_id)
 
         trainer = LemonTrainer(cfg, attempt=attempt_id)
+        save_dir = trainer.save_dir
+        log.info("Los resultados de guardarán en %s", save_dir)
 
         try:
             results = trainer.run_trainer()
