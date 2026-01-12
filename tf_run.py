@@ -28,7 +28,7 @@ def _setup_logging():
 def main(
     runs: int = 10,
     epochs: int = 40,
-    learning_rate: float = 1e-3,
+    learning_rate: float = 3e-4,
     loader: str = "tf",
     mode: str = "scratch",
 ):
